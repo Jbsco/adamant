@@ -28,7 +28,7 @@ class assembly_ccsds_cosmos_commands_txt(assembly_plugin_generator, generator_ba
         this_file_dir = os.path.dirname(os.path.realpath(__file__))
         template_dir = os.path.join(this_file_dir, ".." + os.sep + "templates")
         assembly_plugin_generator.__init__(
-            self, "name_ccsds_cosmos_commands.txt", template_dir=template_dir, subdir="Config"
+            self, "name_ccsds_cosmos_commands.txt", template_dir=template_dir, subdir="plugin"
         )
 
     def generate(self, input_filename):
@@ -43,7 +43,7 @@ class assembly_ccsds_cosmos_telemetry_txt(assembly_plugin_generator, generator_b
         this_file_dir = os.path.dirname(os.path.realpath(__file__))
         template_dir = os.path.join(this_file_dir, ".." + os.sep + "templates")
         assembly_plugin_generator.__init__(
-            self, "name_ccsds_cosmos_telemetry.txt", template_dir=template_dir, subdir="Config"
+            self, "name_ccsds_cosmos_telemetry.txt", template_dir=template_dir, subdir="plugin"
         )
 
     def generate(self, input_filename):
@@ -58,7 +58,7 @@ class assembly_ccsds_cosmos_plugin_txt(assembly_plugin_generator, generator_base
         this_file_dir = os.path.dirname(os.path.realpath(__file__))
         template_dir = os.path.join(this_file_dir, ".." + os.sep + "templates")
         assembly_plugin_generator.__init__(
-            self, "name_ccsds_cosmos_plugin.txt", template_dir=template_dir, subdir="Config"
+            self, "name_ccsds_cosmos_plugin.txt", template_dir=template_dir, subdir="plugin"
         )
 
     def generate(self, input_filename):

@@ -92,9 +92,9 @@ class assembly_plugin_generator(assembly_generator):
 
     def _get_default_build_dir(self):
         if self._subdir:
-            return "build" + os.sep + "plugin" + os.sep + self._subdir
+            return "build" + os.sep + "cosmos" + os.sep + self._subdir
         else:
-            return "build" + os.sep + "plugin" + os.sep + self.extension
+            return "build" + os.sep + "cosmos" + os.sep + self.extension
 
 ####################################################
 # Assembly generators:
