@@ -10,3 +10,13 @@ INTERFACE <%= {{ name|lower }}_target_name %>_INT tcpip_server_interface.rb <%= 
   PROTOCOL READ crc_protocol.rb nil true "ERROR" -16 16
   PROTOCOL WRITE cmd_checksum.rb <%= checksum_parameter_name %>
 
+{# only for serial:
+VARIABLE port_w /dev/ttyACM0
+VARIABLE port_r /dev/ttyACM0
+VARIABLE checksum_parameter_name CCSDSSHDRCRC
+
+TARGET {{ name|upper }} <%= {{ name|lower }}_target_name %>
+INTERFACE <%= {{ name|lower }}_target_name %>_INT serial_interface.rb <%= port_w %> <%= port_r %> 10.0 nil LENGTH 64 16 11 1 BIG_ENDIAN 0 FED4AFEE
+  MAP_TARGET <%= {{ name|lower }}_target_name %>
+  PROTOCOL READ crc_mod_protocol.rb nil true "ERROR" -16 16
+  PROTOCOL WRITE cmd_checksum.rb <%= checksum_parameter_name %> #}
