@@ -7,6 +7,7 @@ from generators.assembly import assembly_hydra_generator, assembly_cosmos_plugin
 # the hydra xml for producing commands that adhere to the
 # ccsds_command_depacketizer expected format.
 
+
 class assembly_ccsds_commands_xml(assembly_hydra_generator, generator_base):
     def __init__(self):
         this_file_dir = os.path.dirname(os.path.realpath(__file__))
