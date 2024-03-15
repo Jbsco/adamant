@@ -24,12 +24,12 @@ class assembly_ccsds_commands_xml(assembly_hydra_generator, generator_base):
         print(a.render(self.template, template_path=self.template_dir))
 
 
-class assembly_cosmos_plugin_generator(assembly_cosmos_plugin_generator_base):
-    def __init__(self, template):
+class assembly_cosmos_commands_txt(assembly_cosmos_plugin_generator_base, generator_base):
+    def __init__(self):
         this_file_dir = os.path.dirname(os.path.realpath(__file__))
         template_dir = os.path.join(this_file_dir, ".." + os.sep + "templates")
         assembly_cosmos_plugin_generator_base.__init__(
-            self, template, template_dir=template_dir, subdir="plugin"
+            self, "name_ccsds_cosmos_commands.txt", template_dir=template_dir, subdir="plugin"
         )
 
     def generate(self, input_filename):
@@ -37,23 +37,3 @@ class assembly_cosmos_plugin_generator(assembly_cosmos_plugin_generator_base):
         assembly_gen.create_type_field_strings(a)
         print(a.render(self.template, template_path=self.template_dir))
 
-
-class assembly_ccsds_cosmos_commands_txt(assembly_cosmos_plugin_generator, generator_base):
-    def __init__(self):
-        assembly_cosmos_plugin_generator.__init__(
-            self, "name_ccsds_cosmos_commands.txt"
-        )
-
-
-class assembly_ccsds_cosmos_plugin_txt(assembly_cosmos_plugin_generator, generator_base):
-    def __init__(self):
-        assembly_cosmos_plugin_generator.__init__(
-            self, "name_ccsds_cosmos_plugin.txt"
-        )
-
-
-class assembly_ccsds_cosmos_telemetry_txt(assembly_cosmos_plugin_generator, generator_base):
-    def __init__(self):
-        assembly_cosmos_plugin_generator.__init__(
-            self, "name_ccsds_cosmos_telemetry.txt"
-        )
