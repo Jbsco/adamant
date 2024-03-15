@@ -36,4 +36,3 @@ class assembly_cosmos_commands_txt(assembly_cosmos_plugin_generator_base, genera
         a = self.model_cls(input_filename)
         assembly_gen.create_type_field_strings(a)
         print(a.render(self.template, template_path=self.template_dir))
-

@@ -122,6 +122,7 @@ class hydra_packet_pages_prc(assembly_hydra_generator, generator_base):
             self, "name_packet_pages.prc", subdir="Scripts"
         )
 
+
 class assembly_ccsds_cosmos_plugin_txt(assembly_cosmos_plugin_generator_base, generator_base):
     def __init__(self):
         this_file_dir = os.path.dirname(os.path.realpath(__file__))
