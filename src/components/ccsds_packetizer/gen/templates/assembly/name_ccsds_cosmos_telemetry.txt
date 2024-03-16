@@ -22,10 +22,20 @@ TELEMETRY {{ name|upper }} {{ packet.name|upper }} BIG_ENDIAN "{{ packet.descrip
 {# The packets definitions. #}
 {% for item_name, item in packet.items.items() %}
   APPEND_ITEM {{ item.entity.full_name|upper }}.{% if item.flat_name %}{{ item.flat_name|upper }}{% else %}{{ item.flat_name }}{% endif %} {{ item.size -}}
-{%- if 'Short_Float' in item.type %} FLOAT "
+{%- if 'F' in item.format.type[0] %} FLOAT "
+{%- elif 'U' in item.format.type[0] %} UINT "
+{%- elif 'E' in item.format.type[0] %} UINT "
+{%- elif 'I' in item.format.type[0] %} INT "
 {%- elif 'Buffer' in item.type or item.size > 64 %} BLOCK "
 {%- else %} UINT "{%- endif -%}
 {{ item.flat_desc|replace('\n','') }}"
+{% if item.is_enum %}
+{#}{% for attr in item.__dict__.keys() -%}
+    {{ attr }} - {{ item[attr] }}
+{% endfor -%}#}
+{% for literals in item.datatype.model.literals %}
+    STATE {{ literals.name }} {{ loop.index0 }}
+{% endfor %}{% endif %}
 {% endfor %}
   APPEND_ITEM SUBPACKET.DATA 0 BLOCK "Subpacket data"
 
