@@ -27,8 +27,9 @@ Command {{ name }} {{ command.suite.component.instance_name }}-{{ command.name }
 {%- if 'F32' in command.type %} FLOAT MIN MAX {% if command.default_value %}{{ command.default_value }}{% else %}0{% endif %}
 {%- elif 'Buffer' in command.type or command.size > 64 %} BLOCK 0
 {%- else %} UINT MIN MAX {% if command.default_value %}{{ command.default_value }}{% else %}0{% endif %}{% endif %} "{{ command.type_model.description|replace('\n','') }}"
-{% endfor %}{% endif %}{% endif %}
-{#{% for attr in field.__dict__.keys() -%}
-    {{ attr }} - {{ field[attr] }}
+{#{% for attr in command.type_model.__dict__.keys() -%}
+    {{ attr }} - {{ command.type_model[attr] }}
 {% endfor -%}#}
+{% endfor %}{% endif %}{% endif %}
+
 {% endfor %}
