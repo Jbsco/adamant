@@ -1,0 +1,23 @@
+# Set Variables here to allow variation in your plugin
+Variable {{ name|lower }}_target_name {{ name }}
+# If serial:
+Variable port_w /dev/ttyACM0
+Variable port_r /dev/ttyACM0
+{# If TCP:
+Variable port_w 2003
+Variable port_r 2003
+#}
+Variable checksum_parameter_name Ccsdsshdrcrc
+
+Target {{ name }} <%= {{ name|lower }}_target_name %>
+# If serial:
+Interface <%= {{ name|lower }}_target_name %>_INT serial_interface.rb <%= port_w %> <%= port_r %> 10.0 nil Length 64 16 11 1 Big_Endian 0 FED4AFEE
+  Map_Target <%= {{ name|lower }}_target_name %>
+  Protocol Read crc_sync_protocol.rb nil true "ERROR" -16 16
+  Protocol Write cmd_sync_checksum.rb <%= checksum_parameter_name %>
+{# If TCP:
+Interface <%= {{ name|lower }}_target_name %>_INT tcpip_server_interface.rb <%= port_w %> <%= port_r %> 10.0 nil Length 32 16 7
+  Map_Target <%= {{ name|lower }}_target_name %>
+  Protocol Read crc_protocol.rb nil true "ERROR" -16 16
+  Protocol Write cmd_checksum.rb <%= checksum_parameter_name %>
+#}
