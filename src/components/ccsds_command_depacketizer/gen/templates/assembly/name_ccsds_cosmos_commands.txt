@@ -29,7 +29,7 @@ Command {{ name }} {{ command.suite.component.instance_name }}-{{ command.name }
 {%- elif 'E' in field.format.type[0] %} UINT MIN MAX {% if command.default_value %}{{ command.default_value }}{% else %}0{% endif %}
 {%- elif 'I' in field.format.type[0] %} INT MIN MAX {% if command.default_value %}{{ command.default_value }}{% else %}0{% endif %}{% endif %}
 {%- elif 'Buffer' in command.type or command.size > 64 %} BLOCK 0
-{%- else %} *UINT MIN MAX {% if command.default_value %}{{ command.default_value }}{% else %}0{% endif %}{% endif %} "{{ field.description|replace('\n','') }}"
+{%- else %} UINT MIN MAX {% if command.default_value %}{{ command.default_value }}{% else %}0{% endif %}{% endif %} "{{ field.description|replace('\n','') }}"
 {% if field.format.type and 'E' in field.format.type[0] %}{% for literals in field.type_model.literals %}
     State {{ literals.name }} {{ literals.value }}
 {% endfor %}{% endif %}{% endfor %}{% endif %}{% endif %}
