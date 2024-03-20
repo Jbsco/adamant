@@ -149,7 +149,7 @@ module OpenC3
 
     def read_data(data, extra = nil)
       return super(data, extra) if data.length <= 0
-      data.slice!(0, 4) # only for serial
+      data.slice!(0, 4) # only for serial, remove sync word
       crc = BinaryAccessor.read(@bit_offset, @bit_size, :UINT, data, @endianness)
       calculated_crc = @crc.calc(data[0...(@bit_offset / 8)])
       if calculated_crc != crc

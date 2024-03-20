@@ -25,6 +25,8 @@ module OpenC3
         checksum = packet.buffer.bytes.reduce(seed, :^)
         packet.write(@write_item_name, checksum)
       end
+      packet.buffer = ["FED4AFEE"].pack('H*') + packet.buffer # only for serial
+      # this resolves outgoing serial for the pico example, but need to correct for expected length in COSMOS on outgoing packets.
       packet
     end
   end
