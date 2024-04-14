@@ -28,12 +28,12 @@ Command {{ name }} {{ command.suite.component.instance_name }}-{{ command.name }
   ID_Parameter Adamant_Command_Id 64 16 UINT MIN MAX {{ command.id }} "Adamant command ID"
 {# The command argument definitions. #}
 {% if command.type %}{% if command.type_model %}{% for field in command.type_model.flatten() %}
-  {% if 'x' in (field.format|string)[2] %}Append_Array_Parameter {{ (field.format|string)[1] }}
+  {{ field.type }}.{{ field.name }}: {% if 'x' in (field.format|string)[2] %}Append_Array_Parameter {% if field.type_model.name %}{{ field.type_model.name }}.{% endif %}{{ field.name }} {{ (field.format|string)[1] }}
 {%- if 'F' in (field.format|string)[0] %} FLOAT
 {%- elif 'U' in (field.format|string)[0] %} UINT
 {%- elif 'E' in (field.format|string)[0] %} UINT
 {%- elif 'I' in (field.format|string)[0] %} INT{% endif %} {{ (field.format|string)[1]|int * (field.format|string)[3:]|int }} "{{ field.description|replace('\n','') }}"
-  {% else %}Append_Parameter {% if field.type_model.name %}{{ field.type_model.name }}.{% endif %}{{ field.name }} {% if field.format.type %}{{ field.format.type[1:] }}{% endif %}{% if field.type_model.size %}{{ field.type_model.size }}{% endif %}
+{% else %}Append_Parameter {% if field.type_model.name %}{{ field.type_model.name }}.{% endif %}{{ field.name }} {% if field.format.type %}{{ field.format.type[1:] }}{% endif %}{% if field.type_model.size %}{{ field.type_model.size }}{% endif %}
 {% if 'F' in (field.format|string)[0] %} FLOAT MIN MAX {% if command.default_value %}{{ command.default_value }}{% else %}0{% endif %}
 {% elif 'U' in (field.format|string)[0] %} UINT MIN MAX {% if command.default_value %}{{ command.default_value }}{% else %}0{% endif %}
 {% elif 'E' in (field.format|string)[0] %} UINT MIN MAX {% if command.default_value %}{{ command.default_value }}{% else %}0{% endif %}
