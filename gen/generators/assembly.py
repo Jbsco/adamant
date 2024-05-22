@@ -128,7 +128,7 @@ class assembly_ccsds_cosmos_plugin_txt(assembly_cosmos_plugin_generator_base, ge
         this_file_dir = os.path.dirname(os.path.realpath(__file__))
         template_dir = os.path.join(this_file_dir, ".." + os.sep + "templates")
         assembly_cosmos_plugin_generator_base.__init__(
-            self, "name_ccsds_cosmos_plugin.txt", template_dir=template_dir, subdir="plugin"
+            self, "name_ccsds_cosmos_plugin.txt", template_dir=template_dir, subdir="template"
         )
 
     def generate(self, input_filename):
