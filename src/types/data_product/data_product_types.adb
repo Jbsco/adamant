@@ -1,4 +1,5 @@
 with Sys_Time.Arithmetic;
+with Ada.Text_IO; use Ada.Text_IO;
 
 package body Data_Product_Types is
 
@@ -13,14 +14,20 @@ package body Data_Product_Types is
          when Success =>
             null; -- Continue on.
          when Underflow =>
+            Put_Line ("TIMING - Underflow");
             return Stale;
          when Overflow =>
+            Put_Line ("TIMING - Overflow");
             return Stale;
       end case;
 
       -- OK the time calculation is valid. Check to see if the data product
       -- is too old.
       if Timestamp < Too_Old_Time then
+         Put_Line ("TIMING - Timestamp < Stale_Ref - Stale_Limit");
+         Put_Line ("TIMING - Timestamp: " & Timestamp.Seconds'Image & " sec, " & Timestamp.Subseconds'Image & " ssec");
+         Put_Line ("TIMING - Stale_Reference: " & Stale_Reference.Seconds'Image & " sec, " & Stale_Reference.Subseconds'Image & " ssec");
+         Put_Line ("TIMING - Stale_Limit: " & Stale_Limit'Image & " ssec");
          return Stale;
       else
          return Success;
