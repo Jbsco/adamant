@@ -1,0 +1,43 @@
+description: Monitors battery voltage and solar panel current. Manages power bus enable/disable and load shedding based on battery state of charge. Reports power faults when voltage exceeds safe operating limits.
+execution: passive
+with:
+  - "Power_Manager_Enums"
+
+init:
+  description: Initialize the power manager with voltage thresholds.
+  parameters:
+    - name: "Undervoltage_Limit"
+      type: "Interfaces.Unsigned_16"
+      default: "2800"
+      description: Battery voltage (mV) below which load shedding activates.
+    - name: "Overvoltage_Limit"
+      type: "Interfaces.Unsigned_16"
+      default: "4200"
+      description: Battery voltage (mV) above which overvoltage fault is raised.
+    - name: "Nominal_Voltage"
+      type: "Interfaces.Unsigned_16"
+      default: "3700"
+      description: Battery voltage (mV) at which load shedding deactivates.
+
+connectors:
+  - description: Receive periodic tick to sample power telemetry and run control loop.
+    kind: recv_sync
+    type: Tick.T
+  - description: The command receive connector.
+    kind: recv_sync
+    type: Command.T
+  - description: Send command responses.
+    kind: send
+    type: Command_Response.T
+  - description: Data products are sent out of this connector.
+    kind: send
+    type: Data_Product.T
+  - description: Events are sent out of this connector.
+    kind: send
+    type: Event.T
+  - description: Faults are sent out of this connector.
+    kind: send
+    type: Fault.T
+  - description: System time is retrieved via this connector.
+    kind: get
+    return_type: Sys_Time.T

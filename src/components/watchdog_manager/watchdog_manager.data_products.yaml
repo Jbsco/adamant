@@ -1,0 +1,6 @@
+---
+description: Data products for watchdog manager.
+data_products:
+  - name: Combined_Pet_Count
+    type: Packed_U32.T
+    description: Total combined pet count forwarded to hardware watchdog.

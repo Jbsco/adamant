@@ -1,0 +1,11 @@
+---
+description: Simplified attitude navigation message structure.
+fields:
+  - name: Time_Tag
+    type: Short_Float
+    format: F32
+    description: "[s] Current vehicle time-tag associated with measurements"
+  - name: Attitude_X
+    type: Short_Float
+    format: F32
+    description: "X component of spacecraft attitude"

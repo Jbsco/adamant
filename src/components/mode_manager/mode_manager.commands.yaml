@@ -1,0 +1,8 @@
+---
+description: Commands for mode manager.
+commands:
+  - name: Set_Mode
+    description: Request a mode transition. Rejected if transition is not allowed.
+    arg_type: Packed_Mode_Cmd_Type.T
+  - name: Force_Safe_Mode
+    description: Force immediate transition to Safe mode (always allowed).

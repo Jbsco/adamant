@@ -1,0 +1,33 @@
+description: Simple two-body orbit propagator. Integrates Keplerian motion via RK4 on tick. Parameters are runtime-updateable.
+execution: passive
+
+init:
+  description: Initialize the orbit propagator.
+  parameters:
+    - name: "Dt"
+      type: "Interfaces.IEEE_Float_32"
+      default: "1.0"
+      description: Integration timestep in seconds.
+
+connectors:
+  - description: Receive periodic tick to propagate orbit.
+    kind: recv_sync
+    type: Tick.T
+  - description: The command receive connector.
+    kind: recv_sync
+    type: Command.T
+  - description: Send command responses.
+    kind: send
+    type: Command_Response.T
+  - description: Data products are sent out of this connector.
+    kind: send
+    type: Data_Product.T
+  - description: Events are sent out of this connector.
+    kind: send
+    type: Event.T
+  - description: The parameter update connector.
+    kind: modify
+    type: Parameter_Update.T
+  - description: System time is retrieved via this connector.
+    kind: get
+    return_type: Sys_Time.T

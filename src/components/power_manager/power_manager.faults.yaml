@@ -1,0 +1,8 @@
+description: Faults for the Power Manager component.
+faults:
+  - name: Undervoltage
+    description: Battery voltage below safe operating limit.
+    param_type: Packed_U16.T
+  - name: Overvoltage
+    description: Battery voltage above safe operating limit.
+    param_type: Packed_U16.T

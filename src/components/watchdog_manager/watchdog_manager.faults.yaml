@@ -1,0 +1,6 @@
+---
+description: Faults for watchdog manager.
+faults:
+  - name: Rate_Group_Timeout
+    description: A rate group failed to pet within the timeout period.
+    param_type: Packed_U16.T

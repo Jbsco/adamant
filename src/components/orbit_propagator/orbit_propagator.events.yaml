@@ -1,0 +1,11 @@
+description: Events for the Orbit Propagator component.
+events:
+  - name: State_Updated
+    description: Orbit state was set via command.
+    param_type: Orbit_State.T
+  - name: Parameters_Updated
+    description: Runtime parameters were updated.
+    param_type: Packed_Orbit_Params.T
+  - name: Invalid_Command_Received
+    description: A command was received with invalid parameters.
+    param_type: Invalid_Command_Info.T

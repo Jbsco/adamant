@@ -1,0 +1,8 @@
+description: Data products for the Telemetry Manager component.
+data_products:
+  - name: Products_Forwarded
+    type: Packed_U32.T
+    description: Total number of data products forwarded since last reset.
+  - name: Products_Dropped
+    type: Packed_U32.T
+    description: Total number of data products dropped due to queue overflow.

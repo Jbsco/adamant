@@ -1,0 +1,15 @@
+---
+description: Unit tests for the Mode_Manager component.
+tests:
+  - name: Test_Allowed_Transition
+    description: Verify Safe -> Standby -> Nominal -> Science transitions succeed.
+  - name: Test_Rejected_Transition
+    description: Verify Safe -> Nominal is rejected (not in transition table).
+  - name: Test_Force_Safe_Mode
+    description: Verify Force_Safe_Mode always transitions to Safe from any mode.
+  - name: Test_Same_Mode_Noop
+    description: Verify requesting current mode returns success with no transition event.
+  - name: Test_Transition_Count
+    description: Verify transition count increments correctly.
+  - name: Test_Data_Products_On_Tick
+    description: Verify current mode data product emitted on tick.

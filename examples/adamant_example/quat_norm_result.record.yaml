@@ -1,0 +1,28 @@
+---
+# Quaternion normalization result - normalized quaternion + metadata
+description: Result of quaternion normalization with normalized quaternion and magnitude
+fields:
+  - name: Q_Out_W
+    type: Short_Float
+    format: F32
+    description: "Normalized quaternion W (scalar) component"
+  - name: Q_Out_X  
+    type: Short_Float
+    format: F32
+    description: "Normalized quaternion X component"
+  - name: Q_Out_Y
+    type: Short_Float
+    format: F32
+    description: "Normalized quaternion Y component"
+  - name: Q_Out_Z
+    type: Short_Float
+    format: F32
+    description: "Normalized quaternion Z component"
+  - name: Magnitude
+    type: Short_Float
+    format: F32
+    description: "Original quaternion magnitude before normalization"
+  - name: Valid
+    type: Boolean
+    format: U8
+    description: "True if normalization was successful"

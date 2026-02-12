@@ -1,0 +1,9 @@
+---
+description: Aggregated navigation output containing both attitude and translational components.
+fields:
+  - name: Nav_Att_Out
+    type: Nav_Att.T
+    description: Aggregated attitude navigation message
+  - name: Nav_Trans_Out
+    type: Nav_Trans.T
+    description: Aggregated translational navigation message

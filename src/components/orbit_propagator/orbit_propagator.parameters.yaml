@@ -1,0 +1,6 @@
+description: Runtime-updateable parameters for the Orbit Propagator.
+parameters:
+  - name: Orbit_Params
+    description: Gravitational and drag parameters for orbit propagation.
+    type: Packed_Orbit_Params.T
+    default: "(Mu => 398600.4418, Drag_Coefficient => 0.0)"

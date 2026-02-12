@@ -1,0 +1,12 @@
+description: Orbit propagator tuning parameters (runtime-updateable via parameter connector).
+fields:
+  - name: Mu
+    description: Gravitational parameter (km^3/s^2). Default is Earth.
+    type: Interfaces.IEEE_Float_32
+    format: F32
+    default: "398600.4418"
+  - name: Drag_Coefficient
+    description: Ballistic drag coefficient (dimensionless).
+    type: Interfaces.IEEE_Float_32
+    format: F32
+    default: "0.0"

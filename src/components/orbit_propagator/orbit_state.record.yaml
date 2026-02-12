@@ -1,0 +1,26 @@
+description: Orbital state vector (ECI position and velocity in km and km/s).
+fields:
+  - name: Pos_X
+    description: ECI X position (km).
+    type: Interfaces.IEEE_Float_32
+    format: F32
+  - name: Pos_Y
+    description: ECI Y position (km).
+    type: Interfaces.IEEE_Float_32
+    format: F32
+  - name: Pos_Z
+    description: ECI Z position (km).
+    type: Interfaces.IEEE_Float_32
+    format: F32
+  - name: Vel_X
+    description: ECI X velocity (km/s).
+    type: Interfaces.IEEE_Float_32
+    format: F32
+  - name: Vel_Y
+    description: ECI Y velocity (km/s).
+    type: Interfaces.IEEE_Float_32
+    format: F32
+  - name: Vel_Z
+    description: ECI Z velocity (km/s).
+    type: Interfaces.IEEE_Float_32
+    format: F32

@@ -1,0 +1,14 @@
+description: Angular rate vector in body frame (rad/s).
+fields:
+  - name: X
+    description: Angular rate about body X axis (rad/s).
+    type: Interfaces.IEEE_Float_32
+    format: F32
+  - name: Y
+    description: Angular rate about body Y axis (rad/s).
+    type: Interfaces.IEEE_Float_32
+    format: F32
+  - name: Z
+    description: Angular rate about body Z axis (rad/s).
+    type: Interfaces.IEEE_Float_32
+    format: F32

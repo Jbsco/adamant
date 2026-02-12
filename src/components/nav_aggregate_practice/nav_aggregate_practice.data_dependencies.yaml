@@ -1,0 +1,15 @@
+---
+description: Data dependencies for nav aggregate algorithm.
+data_dependencies:
+  - name: Primary_Attitude_Nav
+    type: Nav_Att.T
+    description: Primary attitude navigation message for aggregation.
+  - name: Secondary_Attitude_Nav
+    type: Nav_Att.T
+    description: Secondary attitude navigation message for aggregation.
+  - name: Primary_Translational_Nav
+    type: Nav_Trans.T
+    description: Primary translational navigation message for aggregation.
+  - name: Secondary_Translational_Nav
+    type: Nav_Trans.T
+    description: Secondary translational navigation message for aggregation.

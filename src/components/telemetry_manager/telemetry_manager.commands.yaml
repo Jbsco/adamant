@@ -1,0 +1,4 @@
+description: Commands for the Telemetry Manager component.
+commands:
+  - name: Reset_Count
+    description: Reset the forwarded data product counter to zero.

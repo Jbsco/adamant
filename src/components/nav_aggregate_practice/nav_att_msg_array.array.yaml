@@ -1,0 +1,4 @@
+---
+description: Array of attitude navigation messages for aggregation.
+type: Nav_Att.T
+length: 2

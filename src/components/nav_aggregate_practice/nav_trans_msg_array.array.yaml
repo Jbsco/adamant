@@ -1,0 +1,4 @@
+---
+description: Array of translational navigation messages for aggregation.
+type: Nav_Trans.T
+length: 2

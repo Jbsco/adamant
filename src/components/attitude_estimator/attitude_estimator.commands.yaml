@@ -1,0 +1,4 @@
+description: Commands for the Attitude Estimator component.
+commands:
+  - name: Reset_Attitude
+    description: Reset the attitude estimate to identity quaternion.

@@ -1,0 +1,43 @@
+---
+description: Configuration parameters for nav aggregate algorithm.
+parameters:
+  - name: Att_Time_Idx
+    description: Index for attitude time selection.
+    type: Packed_U32.T
+    default: "(Value => 0)"
+  - name: Trans_Time_Idx
+    description: Index for translational time selection.
+    type: Packed_U32.T
+    default: "(Value => 0)"
+  - name: Att_Idx
+    description: Index for attitude selection.
+    type: Packed_U32.T
+    default: "(Value => 0)"
+  - name: Rate_Idx
+    description: Index for rate selection.
+    type: Packed_U32.T
+    default: "(Value => 0)"
+  - name: Pos_Idx
+    description: Index for position selection.
+    type: Packed_U32.T
+    default: "(Value => 0)"
+  - name: Vel_Idx
+    description: Index for velocity selection.
+    type: Packed_U32.T
+    default: "(Value => 0)"
+  - name: Dv_Idx
+    description: Index for accumulated delta-V selection.
+    type: Packed_U32.T
+    default: "(Value => 0)"
+  - name: Sun_Idx
+    description: Index for sun vector selection.
+    type: Packed_U32.T
+    default: "(Value => 0)"
+  - name: Att_Msg_Count
+    description: Number of valid attitude messages in the array.
+    type: Packed_U32.T
+    default: "(Value => 1)"
+  - name: Trans_Msg_Count
+    description: Number of valid translational messages in the array.
+    type: Packed_U32.T
+    default: "(Value => 1)"

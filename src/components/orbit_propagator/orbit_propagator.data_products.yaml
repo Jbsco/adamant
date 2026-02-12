@@ -1,0 +1,8 @@
+description: Data products for the Orbit Propagator component.
+data_products:
+  - name: Current_State
+    type: Orbit_State.T
+    description: Current propagated orbital state vector.
+  - name: Propagation_Count
+    type: Packed_U32.T
+    description: Number of propagation steps since last reset.

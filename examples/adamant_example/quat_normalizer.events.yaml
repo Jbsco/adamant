@@ -1,0 +1,6 @@
+---
+description: Events for quaternion normalizer component
+events:
+  - name: Invalid_Quaternion
+    description: Received quaternion with zero magnitude, cannot normalize
+    param_type: Quaternion.T

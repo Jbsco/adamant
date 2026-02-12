@@ -1,0 +1,16 @@
+description: Events for the Power Manager component.
+events:
+  - name: Load_Shedding_Activated
+    description: Battery voltage dropped below threshold, non-essential loads disabled.
+    param_type: Packed_U16.T
+  - name: Load_Shedding_Cleared
+    description: Battery voltage recovered, nominal power restored.
+    param_type: Packed_U16.T
+  - name: State_Forced
+    description: Power bus state was forced via ground command.
+    param_type: Packed_Power_Bus_State.T
+  - name: Faults_Cleared
+    description: Fault counters cleared via ground command.
+  - name: Invalid_Command_Received
+    description: A command was received with invalid parameters.
+    param_type: Invalid_Command_Info.T

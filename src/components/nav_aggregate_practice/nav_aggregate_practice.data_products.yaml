@@ -1,0 +1,6 @@
+---
+description: Data products for nav aggregate component.
+data_products:
+  - name: Aggregated_Nav_State
+    type: Nav_Aggregate_Output.T
+    description: Aggregated navigation state containing both attitude and translational components.

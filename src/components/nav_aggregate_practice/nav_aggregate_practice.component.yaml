@@ -1,0 +1,19 @@
+---
+description: Wraps navAggregateAlgorithm to compute aggregated navigation state from multiple navigation message inputs.
+execution: passive
+connectors:
+  - description: Run algorithm on tick.
+    type: Tick.T
+    kind: recv_sync
+  - description: Fetch data products from database.
+    type: Data_Product_Fetch.T
+    return_type: Data_Product_Return.T
+    kind: request
+  - description: Data product output.
+    type: Data_Product.T
+    kind: send
+  - description: The parameter update connector.
+    kind: modify
+    type: Parameter_Update.T
+with:
+  - "Interfaces"

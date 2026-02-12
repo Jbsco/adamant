@@ -1,0 +1,9 @@
+---
+description: Unit tests for the Telemetry_Formatter component.
+tests:
+  - name: Test_Packet_Emission
+    description: Verify packet emitted at the configured period.
+  - name: Test_No_Packet_Before_Period
+    description: Verify no packet emitted before period elapses.
+  - name: Test_Sequence_Count
+    description: Verify sequence count increments with each packet.

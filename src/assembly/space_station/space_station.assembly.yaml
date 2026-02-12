@@ -1,0 +1,297 @@
+---
+description: Space station assembly demonstrating thermal control, power management, attitude estimation, orbit propagation, and telemetry routing. Runs on native Linux with basic rate group scheduling and command routing.
+preamble: |
+  Dividers : aliased Component.Tick_Divider.Divider_Array_Type := [1 => 5, 2 => 1];
+########################################
+components:
+########################################
+########################################
+# System time:
+########################################
+  - type: Gps_Time
+    name: System_Time_Instance
+    description: Provides system time for the assembly.
+########################################
+# Rate group system:
+########################################
+  - type: Ticker
+    description: Base tick generator at 5 Hz (200ms period).
+    priority: 10
+    stack_size: 50000
+    secondary_stack_size: 10000
+    discriminant:
+      - "Period_Us => 200000"
+  - type: Tick_Divider
+    description: Divides base tick into slow (1 Hz) and fast (5 Hz) rate groups.
+    init_base:
+      - "Tick_T_Send_Count => 2"
+    init:
+      - "Dividers => Dividers'Access"
+  - type: Rate_Group
+    name: Slow_Rate_Group
+    description: 1 Hz rate group for thermal, power, and orbit propagation.
+    priority: 9
+    stack_size: 50000
+    secondary_stack_size: 10000
+    init_base:
+      - "Queue_Size => 3 * Slow_Rate_Group.Get_Max_Queue_Element_Size"
+      - "Tick_T_Send_Count => 3"
+    init:
+      - "Ticks_Per_Timing_Report => 10"
+  - type: Rate_Group
+    name: Fast_Rate_Group
+    description: 5 Hz rate group for attitude estimation.
+    priority: 9
+    stack_size: 50000
+    secondary_stack_size: 10000
+    init_base:
+      - "Queue_Size => 3 * Fast_Rate_Group.Get_Max_Queue_Element_Size"
+      - "Tick_T_Send_Count => 1"
+    init:
+      - "Ticks_Per_Timing_Report => 50"
+########################################
+# Command system:
+########################################
+  - type: Command_Router
+    description: Routes commands to all components and forwards responses.
+    priority: 8
+    stack_size: 50000
+    secondary_stack_size: 10000
+    init_base:
+      - "Queue_Size => 10 * Command_Router_Instance.Get_Max_Queue_Element_Size"
+      - "Command_T_Send_Count => 5"
+      - "Command_Response_T_To_Forward_Send_Count => 1"
+    init:
+      - "Max_Number_Of_Commands => 50"
+########################################
+# Event system: (events left unconnected for now -- _If_Connected guards handle it)
+########################################
+########################################
+# Data product system:
+########################################
+  - type: Product_Database
+    name: Product_Database_Instance
+    description: Central data product storage for the assembly.
+    init:
+      - "Minimum_Data_Product_Id => 0"
+      - "Maximum_Data_Product_Id => 100"
+########################################
+# Application components:
+########################################
+  - type: Thermal_Controller
+    description: Bang-bang heater control with temperature setpoints.
+    init:
+      - "Low_Setpoint => 280"
+      - "High_Setpoint => 300"
+  - type: Power_Manager
+    description: Battery voltage monitoring with load shedding.
+    init:
+      - "Undervoltage_Limit => 2800"
+      - "Overvoltage_Limit => 4200"
+      - "Nominal_Voltage => 3700"
+  - type: Attitude_Estimator
+    description: Quaternion integration from gyro data.
+    map_data_dependencies:
+      - data_dependency: Gyro_Rate
+        data_product: "Attitude_Estimator_Instance.Estimated_Rate"
+        stale_limit_us: 1000000
+    init:
+      - "Dt => 0.2"
+  - type: Orbit_Propagator
+    description: Two-body RK4 orbit propagation with runtime parameters.
+    init:
+      - "Dt => 1.0"
+  - type: Telemetry_Manager
+    description: Async data product forwarding and counting.
+    priority: 7
+    stack_size: 50000
+    secondary_stack_size: 10000
+    init_base:
+      - "Queue_Size => 20 * Telemetry_Manager_Instance.Get_Max_Queue_Element_Size"
+    init:
+      - "Queue_Size => 20"
+########################################
+connections:
+########################################
+########################################
+# Time connections (every component needs system time):
+########################################
+  - from_component: Ticker_Instance
+    from_connector: Sys_Time_T_Get
+    to_component: System_Time_Instance
+    to_connector: Sys_Time_T_Return
+  - from_component: Tick_Divider_Instance
+    from_connector: Sys_Time_T_Get
+    to_component: System_Time_Instance
+    to_connector: Sys_Time_T_Return
+  - from_component: Slow_Rate_Group
+    from_connector: Sys_Time_T_Get
+    to_component: System_Time_Instance
+    to_connector: Sys_Time_T_Return
+  - from_component: Fast_Rate_Group
+    from_connector: Sys_Time_T_Get
+    to_component: System_Time_Instance
+    to_connector: Sys_Time_T_Return
+  - from_component: Command_Router_Instance
+    from_connector: Sys_Time_T_Get
+    to_component: System_Time_Instance
+    to_connector: Sys_Time_T_Return
+  - from_component: Thermal_Controller_Instance
+    from_connector: Sys_Time_T_Get
+    to_component: System_Time_Instance
+    to_connector: Sys_Time_T_Return
+  - from_component: Power_Manager_Instance
+    from_connector: Sys_Time_T_Get
+    to_component: System_Time_Instance
+    to_connector: Sys_Time_T_Return
+  - from_component: Attitude_Estimator_Instance
+    from_connector: Sys_Time_T_Get
+    to_component: System_Time_Instance
+    to_connector: Sys_Time_T_Return
+  - from_component: Orbit_Propagator_Instance
+    from_connector: Sys_Time_T_Get
+    to_component: System_Time_Instance
+    to_connector: Sys_Time_T_Return
+  - from_component: Telemetry_Manager_Instance
+    from_connector: Sys_Time_T_Get
+    to_component: System_Time_Instance
+    to_connector: Sys_Time_T_Return
+  - from_component: Product_Database_Instance
+    from_connector: Sys_Time_T_Get
+    to_component: System_Time_Instance
+    to_connector: Sys_Time_T_Return
+########################################
+# Tick distribution:
+########################################
+  - from_component: Ticker_Instance
+    from_connector: Tick_T_Send
+    to_component: Tick_Divider_Instance
+    to_connector: Tick_T_Recv_Sync
+  # Slow rate (1 Hz):
+  - from_component: Tick_Divider_Instance
+    from_connector: Tick_T_Send
+    from_index: 1
+    to_component: Slow_Rate_Group
+    to_connector: Tick_T_Recv_Async
+  # Fast rate (5 Hz):
+  - from_component: Tick_Divider_Instance
+    from_connector: Tick_T_Send
+    from_index: 2
+    to_component: Fast_Rate_Group
+    to_connector: Tick_T_Recv_Async
+  # Slow rate group -> application components:
+  - from_component: Slow_Rate_Group
+    from_connector: Tick_T_Send
+    from_index: 1
+    to_component: Thermal_Controller_Instance
+    to_connector: Tick_T_Recv_Sync
+  - from_component: Slow_Rate_Group
+    from_connector: Tick_T_Send
+    from_index: 2
+    to_component: Power_Manager_Instance
+    to_connector: Tick_T_Recv_Sync
+  - from_component: Slow_Rate_Group
+    from_connector: Tick_T_Send
+    from_index: 3
+    to_component: Orbit_Propagator_Instance
+    to_connector: Tick_T_Recv_Sync
+  # Fast rate group -> attitude estimator:
+  - from_component: Fast_Rate_Group
+    from_connector: Tick_T_Send
+    from_index: 1
+    to_component: Attitude_Estimator_Instance
+    to_connector: Tick_T_Recv_Sync
+########################################
+# Command routing:
+########################################
+  - from_component: Command_Router_Instance
+    from_connector: Command_T_Send
+    from_index: 1
+    to_component: Thermal_Controller_Instance
+    to_connector: Command_T_Recv_Sync
+  - from_component: Command_Router_Instance
+    from_connector: Command_T_Send
+    from_index: 2
+    to_component: Power_Manager_Instance
+    to_connector: Command_T_Recv_Sync
+  - from_component: Command_Router_Instance
+    from_connector: Command_T_Send
+    from_index: 3
+    to_component: Attitude_Estimator_Instance
+    to_connector: Command_T_Recv_Sync
+  - from_component: Command_Router_Instance
+    from_connector: Command_T_Send
+    from_index: 4
+    to_component: Orbit_Propagator_Instance
+    to_connector: Command_T_Recv_Sync
+  - from_component: Command_Router_Instance
+    from_connector: Command_T_Send
+    from_index: 5
+    to_component: Telemetry_Manager_Instance
+    to_connector: Command_T_Recv_Sync
+  # Command responses back to router:
+  - from_component: Thermal_Controller_Instance
+    from_connector: Command_Response_T_Send
+    to_component: Command_Router_Instance
+    to_connector: Command_Response_T_Recv_Async
+  - from_component: Power_Manager_Instance
+    from_connector: Command_Response_T_Send
+    to_component: Command_Router_Instance
+    to_connector: Command_Response_T_Recv_Async
+  - from_component: Attitude_Estimator_Instance
+    from_connector: Command_Response_T_Send
+    to_component: Command_Router_Instance
+    to_connector: Command_Response_T_Recv_Async
+  - from_component: Orbit_Propagator_Instance
+    from_connector: Command_Response_T_Send
+    to_component: Command_Router_Instance
+    to_connector: Command_Response_T_Recv_Async
+  - from_component: Telemetry_Manager_Instance
+    from_connector: Command_Response_T_Send
+    to_component: Command_Router_Instance
+    to_connector: Command_Response_T_Recv_Async
+########################################
+# Command response forwarding (loopback since no external command source):
+########################################
+  - from_component: Command_Router_Instance
+    from_connector: Command_Response_T_To_Forward_Send
+    from_index: 1
+    to_component: Command_Router_Instance
+    to_connector: Command_Response_T_Recv_Async
+########################################
+# Event collection: (events unconnected -- _If_Connected guards)
+########################################
+########################################
+# Data product routing:
+########################################
+  - from_component: Thermal_Controller_Instance
+    from_connector: Data_Product_T_Send
+    to_component: Telemetry_Manager_Instance
+    to_connector: Data_Product_T_Recv_Async
+  - from_component: Power_Manager_Instance
+    from_connector: Data_Product_T_Send
+    to_component: Telemetry_Manager_Instance
+    to_connector: Data_Product_T_Recv_Async
+  - from_component: Attitude_Estimator_Instance
+    from_connector: Data_Product_T_Send
+    to_component: Telemetry_Manager_Instance
+    to_connector: Data_Product_T_Recv_Async
+  - from_component: Orbit_Propagator_Instance
+    from_connector: Data_Product_T_Send
+    to_component: Telemetry_Manager_Instance
+    to_connector: Data_Product_T_Recv_Async
+  # Telemetry manager forwards to database:
+  - from_component: Telemetry_Manager_Instance
+    from_connector: Data_Product_T_Send
+    to_component: Product_Database_Instance
+    to_connector: Data_Product_T_Recv_Sync
+########################################
+# Data dependency (attitude estimator fetches gyro from database):
+########################################
+  - from_component: Attitude_Estimator_Instance
+    from_connector: Data_Product_Fetch_T_Request
+    to_component: Product_Database_Instance
+    to_connector: Data_Product_Fetch_T_Service
+########################################
+# Fault routing: (faults unconnected -- _If_Connected guards)
+########################################

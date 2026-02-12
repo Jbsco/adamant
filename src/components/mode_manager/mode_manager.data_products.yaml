@@ -1,0 +1,9 @@
+---
+description: Data products for mode manager.
+data_products:
+  - name: Current_Mode
+    type: Packed_Mode_Cmd_Type.T
+    description: Current spacecraft operating mode.
+  - name: Transition_Count
+    type: Packed_U16.T
+    description: Total number of mode transitions since boot.

@@ -1,0 +1,9 @@
+---
+description: Unit tests for the Watchdog_Manager component.
+tests:
+  - name: Test_All_Pets_Healthy
+    description: Verify combined pet forwarded when all sources are healthy.
+  - name: Test_Pet_Timeout
+    description: Verify fault and event when a source misses its pet deadline.
+  - name: Test_No_Pet_Until_All_Healthy
+    description: Verify no combined pet forwarded if any source is timed out.

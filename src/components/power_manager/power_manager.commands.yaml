@@ -1,0 +1,7 @@
+description: Commands for the Power Manager component.
+commands:
+  - name: Force_State
+    description: Force the power bus to a specific state.
+    arg_type: Packed_Power_Bus_State.T
+  - name: Clear_Faults
+    description: Clear latched fault counters and restore nominal operation.

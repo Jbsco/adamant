@@ -1,0 +1,11 @@
+---
+description: Event payload for mode transitions.
+fields:
+  - name: From_Mode
+    type: Mode_Manager_Enums.System_Mode.E
+    format: E8
+    description: Previous mode.
+  - name: To_Mode
+    type: Mode_Manager_Enums.System_Mode.E
+    format: E8
+    description: New mode.

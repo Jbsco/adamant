@@ -1,0 +1,7 @@
+description: Commands for the Orbit Propagator component.
+commands:
+  - name: Set_State
+    description: Set the current orbital state vector.
+    arg_type: Orbit_State.T
+  - name: Reset_Propagator
+    description: Reset orbit state to zero and counters.

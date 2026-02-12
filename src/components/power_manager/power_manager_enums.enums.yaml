@@ -1,0 +1,11 @@
+description: Enumerations for the Power Manager component.
+enums:
+  - name: Power_Bus_State
+    description: Power bus operating state.
+    literals:
+      - name: Nominal
+        value: 0
+      - name: Load_Shedding
+        value: 1
+      - name: Emergency_Shutdown
+        value: 2

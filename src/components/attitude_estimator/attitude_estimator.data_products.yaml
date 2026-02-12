@@ -1,0 +1,8 @@
+description: Data products for the Attitude Estimator component.
+data_products:
+  - name: Estimated_Attitude
+    type: Quaternion.T
+    description: Current estimated spacecraft attitude quaternion.
+  - name: Estimated_Rate
+    type: Angular_Rate.T
+    description: Latest angular rate used in estimation.

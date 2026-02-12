@@ -1,0 +1,5 @@
+description: Data dependencies for the Attitude Estimator component.
+data_dependencies:
+  - name: Gyro_Rate
+    type: Angular_Rate.T
+    description: Latest gyroscope angular rate measurement from IMU component.

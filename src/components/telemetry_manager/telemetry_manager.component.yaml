@@ -1,0 +1,29 @@
+description: Active telemetry manager that receives data products asynchronously, counts them, and forwards to a downstream packetizer. Demonstrates async recv connector with queue depth.
+execution: active
+init:
+  description: Initialize the telemetry manager with queue depth.
+  parameters:
+    - name: "Queue_Size"
+      type: "Natural"
+      default: "10"
+      description: Depth of the async receive queue.
+
+connectors:
+  - description: Receive data products asynchronously for processing.
+    kind: recv_async
+    type: Data_Product.T
+  - description: The command receive connector.
+    kind: recv_sync
+    type: Command.T
+  - description: Send command responses.
+    kind: send
+    type: Command_Response.T
+  - description: Forward data products to downstream packetizer.
+    kind: send
+    type: Data_Product.T
+  - description: Events are sent out of this connector.
+    kind: send
+    type: Event.T
+  - description: System time is retrieved via this connector.
+    kind: get
+    return_type: Sys_Time.T

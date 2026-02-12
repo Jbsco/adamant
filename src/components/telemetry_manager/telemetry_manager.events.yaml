@@ -1,0 +1,9 @@
+description: Events for the Telemetry Manager component.
+events:
+  - name: Data_Product_Forwarded
+    description: A data product was forwarded to the downstream packetizer.
+  - name: Queue_Overflow
+    description: The async receive queue overflowed and a data product was dropped.
+  - name: Invalid_Command_Received
+    description: A command was received with invalid parameters.
+    param_type: Invalid_Command_Info.T

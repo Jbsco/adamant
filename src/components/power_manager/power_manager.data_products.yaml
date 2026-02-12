@@ -1,0 +1,11 @@
+description: Data products for the Power Manager component.
+data_products:
+  - name: Power_Telemetry
+    type: Power_Status.T
+    description: Current power system telemetry.
+  - name: Bus_State
+    type: Packed_Power_Bus_State.T
+    description: Current power bus operating state.
+  - name: Fault_Count
+    type: Packed_U16.T
+    description: Number of voltage faults detected since last clear.

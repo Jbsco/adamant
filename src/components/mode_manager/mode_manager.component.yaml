@@ -1,0 +1,31 @@
+---
+description: Manages spacecraft operating modes with guarded transitions. Validates mode transition requests against allowed transition table. Publishes current mode as a data product for other components to consume via data dependencies.
+execution: passive
+with:
+  - "Interfaces"
+init:
+  description: Initialize with starting mode.
+  parameters:
+    - name: Initial_Mode
+      type: Mode_Manager_Enums.System_Mode.E
+      default: "Mode_Manager_Enums.System_Mode.Safe"
+      description: Mode at startup.
+connectors:
+  - description: Receive periodic tick.
+    type: Tick.T
+    kind: recv_sync
+  - description: Receive commands.
+    type: Command.T
+    kind: recv_sync
+  - description: Send command responses.
+    type: Command_Response.T
+    kind: send
+  - description: Get current system time.
+    return_type: Sys_Time.T
+    kind: get
+  - description: Send data products.
+    type: Data_Product.T
+    kind: send
+  - description: Send events.
+    type: Event.T
+    kind: send

@@ -1,0 +1,34 @@
+description: Simple attitude estimator that integrates gyroscope angular rates to propagate a quaternion. Reads gyro data via data dependency and publishes estimated attitude as a data product.
+execution: passive
+
+init:
+  description: Initialize the attitude estimator.
+  parameters:
+    - name: "Dt"
+      type: "Interfaces.IEEE_Float_32"
+      default: "0.1"
+      description: Integration timestep in seconds (should match tick rate).
+
+connectors:
+  - description: Receive periodic tick to run estimation loop.
+    kind: recv_sync
+    type: Tick.T
+  - description: The command receive connector.
+    kind: recv_sync
+    type: Command.T
+  - description: Send command responses.
+    kind: send
+    type: Command_Response.T
+  - description: Data products are sent out of this connector.
+    kind: send
+    type: Data_Product.T
+  - description: Events are sent out of this connector.
+    kind: send
+    type: Event.T
+  - description: System time is retrieved via this connector.
+    kind: get
+    return_type: Sys_Time.T
+  - description: Fetch a data product item from the database.
+    type: Data_Product_Fetch.T
+    return_type: Data_Product_Return.T
+    kind: request

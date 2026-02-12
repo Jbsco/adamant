@@ -1,0 +1,11 @@
+---
+description: Events for watchdog manager.
+events:
+  - name: Pet_Received
+    description: A pet was received from a rate group.
+    param_type: Pet.T
+  - name: Pet_Timeout
+    description: A rate group missed its pet deadline.
+    param_type: Packed_U16.T
+  - name: All_Pets_Healthy
+    description: All rate groups are petting on time.

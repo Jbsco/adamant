@@ -1,0 +1,8 @@
+description: Packed power bus state for data products.
+with:
+  - Power_Manager_Enums
+fields:
+  - name: State
+    description: Current power bus operating state.
+    type: Power_Manager_Enums.Power_Bus_State.E
+    format: E8

@@ -1,0 +1,29 @@
+---
+description: Periodically formats selected data products into telemetry packets. On each tick, fetches data products from the database and packs them into a fixed-format packet for downlink.
+execution: passive
+init:
+  description: Initialize with packet period in ticks.
+  parameters:
+    - name: Packet_Period
+      type: Positive
+      description: Number of ticks between packet emissions.
+connectors:
+  - description: Receive a tick to trigger packet formation.
+    type: Tick.T
+    kind: recv_sync
+  - description: Fetch data products from database.
+    return_type: Data_Product_Return.T
+    type: Data_Product_Fetch.T
+    kind: request
+  - description: Get current system time.
+    return_type: Sys_Time.T
+    kind: get
+  - description: Send formatted telemetry packets.
+    type: Packet.T
+    kind: send
+  - description: Send events.
+    type: Event.T
+    kind: send
+  - description: Send data products.
+    type: Data_Product.T
+    kind: send

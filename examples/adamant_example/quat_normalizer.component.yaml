@@ -1,0 +1,24 @@
+---
+description: Wraps QuatNorm algorithm to normalize quaternions with validation
+execution: passive
+with:
+  - "Quat_Norm_Algorithm_C"
+
+connectors:
+  - description: Tick connector - receives quaternion to normalize
+    type: Quaternion.T
+    kind: recv_sync
+    name: Quaternion_Recv_Sync
+  - description: Send normalized quaternion result
+    type: Quat_Norm_Result.T
+    kind: send
+    name: Quaternion_Result_Send
+  - description: Send events
+    type: Event.T
+    kind: send
+  - description: Send data products
+    type: Data_Product.T
+    kind: send
+
+init:
+  description: Initialize the quaternion normalizer algorithm

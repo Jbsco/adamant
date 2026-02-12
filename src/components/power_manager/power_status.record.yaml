@@ -1,0 +1,14 @@
+description: Power system status telemetry snapshot.
+fields:
+  - name: Battery_Voltage
+    description: Battery voltage in millivolts.
+    type: Interfaces.Unsigned_16
+    format: U16
+  - name: Solar_Current
+    description: Solar panel current in milliamps.
+    type: Interfaces.Unsigned_16
+    format: U16
+  - name: Load_Current
+    description: Total load current in milliamps.
+    type: Interfaces.Unsigned_16
+    format: U16

@@ -1,0 +1,19 @@
+description: Unit quaternion representing spacecraft attitude (scalar-last convention).
+fields:
+  - name: Q1
+    description: Quaternion vector component 1.
+    type: Interfaces.IEEE_Float_32
+    format: F32
+  - name: Q2
+    description: Quaternion vector component 2.
+    type: Interfaces.IEEE_Float_32
+    format: F32
+  - name: Q3
+    description: Quaternion vector component 3.
+    type: Interfaces.IEEE_Float_32
+    format: F32
+  - name: Q4
+    description: Quaternion scalar component.
+    type: Interfaces.IEEE_Float_32
+    format: F32
+    default: "1.0"

@@ -1,0 +1,18 @@
+---
+description: Enumerations for mode manager.
+enums:
+  - name: System_Mode
+    description: Spacecraft operating mode.
+    literals:
+      - name: Safe
+        value: 0
+        description: Safe mode - minimal operations.
+      - name: Standby
+        value: 1
+        description: Standby - ready for nominal ops.
+      - name: Nominal
+        value: 2
+        description: Nominal operations.
+      - name: Science
+        value: 3
+        description: Science data collection mode.

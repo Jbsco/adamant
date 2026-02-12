@@ -1,0 +1,6 @@
+---
+description: Data products for quaternion normalizer component
+data_products:
+  - name: Normalization_Count
+    type: Packed_U32.T
+    description: Total count of successful quaternion normalizations performed

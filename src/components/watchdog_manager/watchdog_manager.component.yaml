@@ -1,0 +1,32 @@
+---
+description: Aggregates watchdog pets from multiple rate groups. Detects missed pets and raises faults. Optionally forwards a combined pet to an external hardware watchdog.
+execution: passive
+init:
+  description: Initialize with timeout in ticks.
+  parameters:
+    - name: Timeout_Ticks
+      type: Positive
+      description: Number of ticks before a missed pet triggers a fault.
+connectors:
+  - description: Receive pets from rate groups (arrayed).
+    type: Pet.T
+    kind: recv_sync
+    count: 3
+  - description: Receive a tick to check pet freshness.
+    type: Tick.T
+    kind: recv_sync
+  - description: Get current system time.
+    return_type: Sys_Time.T
+    kind: get
+  - description: Send combined pet to hardware watchdog.
+    type: Pet.T
+    kind: send
+  - description: Send events.
+    type: Event.T
+    kind: send
+  - description: Send faults.
+    type: Fault.T
+    kind: send
+  - description: Send data products.
+    type: Data_Product.T
+    kind: send

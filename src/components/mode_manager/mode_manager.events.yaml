@@ -1,0 +1,14 @@
+---
+description: Events for mode manager.
+events:
+  - name: Mode_Transition
+    description: Mode transition completed.
+    param_type: Packed_Mode_Transition.T
+  - name: Mode_Transition_Rejected
+    description: Mode transition request was rejected (invalid transition).
+    param_type: Packed_Mode_Transition.T
+  - name: Forced_Safe_Mode
+    description: Forced transition to Safe mode.
+  - name: Invalid_Command_Received
+    description: Received command with invalid arguments.
+    param_type: Invalid_Command_Info.T

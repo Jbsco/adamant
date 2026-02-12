@@ -1,0 +1,7 @@
+---
+description: Command argument for mode transition.
+fields:
+  - name: Target_Mode
+    type: Mode_Manager_Enums.System_Mode.E
+    format: E8
+    description: Desired system mode.
