@@ -71,17 +71,103 @@ def new_component(args):
     print(f"\nNext: edit {name}.component.yaml, then run 'redo templates'")
 
 
+def _find_all_path_dirs(*roots):
+    """Find all directories containing .all_path under the given roots."""
+    dirs = []
+    for root in roots:
+        if not root or not os.path.isdir(root):
+            continue
+        for dirpath, dirnames, filenames in os.walk(root):
+            dirnames[:] = [d for d in dirnames if d != "build" and not d.startswith(".")]
+            if ".all_path" in filenames:
+                dirs.append(dirpath)
+    return dirs
+
+
+def _find_yaml(name, suffix, search_dirs):
+    """Find <name>.<suffix>.yaml in search_dirs, trying snake_case too."""
+    for variant in (name, name.lower()):
+        target = f"{variant}.{suffix}.yaml"
+        for d in search_dirs:
+            p = os.path.join(d, target)
+            if os.path.isfile(p):
+                return p
+    return None
+
+
+def _load_yaml(path):
+    import yaml
+    with open(path) as f:
+        return yaml.safe_load(f) or {}
+
+
+def _resolve_components(assembly_path, search_dirs):
+    """Return list of (instance_name, comp_type) from assembly + subassemblies."""
+    data = _load_yaml(assembly_path)
+    assembly_dir = os.path.dirname(os.path.abspath(assembly_path))
+    components = []
+
+    for c in data.get("components", []):
+        components.append((c.get("name", c["type"] + "_Instance"), c["type"]))
+
+    for sub in data.get("subassemblies", []):
+        sub_name = sub if isinstance(sub, str) else sub.get("type", sub.get("name", ""))
+        sub_path = _find_yaml(sub_name, "assembly", [assembly_dir] + search_dirs)
+        if sub_path:
+            sub_data = _load_yaml(sub_path)
+            for c in sub_data.get("components", []):
+                components.append((c.get("name", c["type"] + "_Instance"), c["type"]))
+    return components
+
+
+def query_commands(args):
+    """List all commands in an assembly."""
+    import json
+    assembly = args.assembly
+    if not os.path.isfile(assembly):
+        print(f"Error: not found: {assembly}", file=sys.stderr)
+        sys.exit(1)
+
+    adamant_dir = os.environ.get("ADAMANT_DIR", "")
+    search_dirs = _find_all_path_dirs(os.getcwd(), adamant_dir)
+    components = _resolve_components(assembly, search_dirs)
+
+    commands = []
+    for instance, comp_type in components:
+        cmd_path = _find_yaml(comp_type, "commands", search_dirs)
+        if not cmd_path:
+            continue
+        cmd_data = _load_yaml(cmd_path)
+        for cmd in cmd_data.get("commands", []):
+            entry = {"instance": instance, "command": cmd["name"]}
+            if "arg_type" in cmd:
+                entry["arg_type"] = cmd["arg_type"]
+            if args.verbose and "description" in cmd:
+                entry["description"] = cmd["description"]
+            commands.append(entry)
+
+    print(json.dumps(commands, indent=2))
+
+
 def main():
     parser = argparse.ArgumentParser(prog="admt", description="Adamant Multi-Tool")
     sub = parser.add_subparsers(dest="command")
 
+    # new
     new_parser = sub.add_parser("new", help="Create new Adamant artifacts")
     new_sub = new_parser.add_subparsers(dest="new_type")
-
     comp = new_sub.add_parser("component", help="Create a new component scaffold")
     comp.add_argument("name", help="Component name (snake_case)")
     comp.add_argument("--dir", default=".", help="Parent directory (default: current)")
     comp.set_defaults(func=new_component)
+
+    # query
+    query_parser = sub.add_parser("query", help="Query assembly models")
+    query_sub = query_parser.add_subparsers(dest="query_type")
+    qcmd = query_sub.add_parser("commands", help="List all commands in an assembly")
+    qcmd.add_argument("assembly", help="Path to assembly YAML file")
+    qcmd.add_argument("-v", "--verbose", action="store_true", help="Include descriptions")
+    qcmd.set_defaults(func=query_commands)
 
     args = parser.parse_args()
     if not hasattr(args, "func"):
