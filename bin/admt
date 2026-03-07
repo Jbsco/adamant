@@ -1,0 +1,94 @@
+#!/usr/bin/env python3
+"""admt -- Adamant Multi-Tool"""
+import sys
+import os
+import argparse
+
+
+def new_component(args):
+    name = args.name
+    dest = os.path.join(args.dir, name) if args.dir else name
+
+    if os.path.exists(dest):
+        print(f"Error: '{dest}' already exists.", file=sys.stderr)
+        sys.exit(1)
+
+    # Component dir + test dir
+    test_dir = os.path.join(dest, "test")
+    os.makedirs(test_dir)
+
+    # .all_path (empty, required by redo)
+    open(os.path.join(dest, ".all_path"), "w").close()
+
+    # component.yaml
+    with open(os.path.join(dest, f"{name}.component.yaml"), "w") as f:
+        f.write(f"---\ndescription: TODO\nexecution: passive\nconnectors:\n")
+        f.write(f"  - description: Receive periodic tick\n    type: Tick.T\n    kind: recv_sync\n")
+        f.write(f"  - description: Get current system time\n    return_type: Sys_Time.T\n    kind: get\n")
+        f.write(f"  - description: Send events\n    type: Event.T\n    kind: send\n")
+        f.write(f"  - description: Send data products\n    type: Data_Product.T\n    kind: send\n")
+
+    # Implementation spec
+    ada_name = name.replace("_", " ").title().replace(" ", "_")
+    with open(os.path.join(dest, f"component-{name}-implementation.ads"), "w") as f:
+        f.write(f"with Tick;\n\n")
+        f.write(f"package Component.{ada_name}.Implementation is\n\n")
+        f.write(f"   type Instance is new {ada_name}.Base_Instance with private;\n\n")
+        f.write(f"   overriding procedure Tick_T_Recv_Sync (Self : in out Instance; Arg : in Tick.T);\n")
+        f.write(f"   overriding procedure Event_T_Send_Dropped (Self : in out Instance; Arg : in Event.T) is null;\n")
+        f.write(f"   overriding procedure Data_Product_T_Send_Dropped (Self : in out Instance; Arg : in Data_Product.T) is null;\n\n")
+        f.write(f"private\n\n")
+        f.write(f"   type Instance is new {ada_name}.Base_Instance with record\n")
+        f.write(f"      null;\n")
+        f.write(f"   end record;\n\n")
+        f.write(f"end Component.{ada_name}.Implementation;\n")
+
+    # Implementation body
+    with open(os.path.join(dest, f"component-{name}-implementation.adb"), "w") as f:
+        f.write(f"package body Component.{ada_name}.Implementation is\n\n")
+        f.write(f"   overriding procedure Tick_T_Recv_Sync (Self : in out Instance; Arg : in Tick.T) is\n")
+        f.write(f"      Ignore : constant Tick.T := Arg;\n")
+        f.write(f"   begin\n")
+        f.write(f"      null; -- TODO: implement\n")
+        f.write(f"   end Tick_T_Recv_Sync;\n\n")
+        f.write(f"end Component.{ada_name}.Implementation;\n")
+
+    # test/env.py
+    with open(os.path.join(test_dir, "env.py"), "w") as f:
+        f.write("from environments import test  # noqa: F401\n")
+
+    # test/tests.yaml
+    with open(os.path.join(test_dir, f"{name}.tests.yaml"), "w") as f:
+        f.write(f"---\ndescription: {name} unit tests\ntests:\n")
+        f.write(f"  - name: Test_Nominal\n    description: Nominal tick processing\n")
+
+    print(f"Created component: {dest}/")
+    print(f"  {name}.component.yaml")
+    print(f"  component-{name}-implementation.ads")
+    print(f"  component-{name}-implementation.adb")
+    print(f"  test/env.py")
+    print(f"  test/{name}.tests.yaml")
+    print(f"\nNext: edit {name}.component.yaml, then run 'redo templates'")
+
+
+def main():
+    parser = argparse.ArgumentParser(prog="admt", description="Adamant Multi-Tool")
+    sub = parser.add_subparsers(dest="command")
+
+    new_parser = sub.add_parser("new", help="Create new Adamant artifacts")
+    new_sub = new_parser.add_subparsers(dest="new_type")
+
+    comp = new_sub.add_parser("component", help="Create a new component scaffold")
+    comp.add_argument("name", help="Component name (snake_case)")
+    comp.add_argument("--dir", default=".", help="Parent directory (default: current)")
+    comp.set_defaults(func=new_component)
+
+    args = parser.parse_args()
+    if not hasattr(args, "func"):
+        parser.print_help()
+        sys.exit(1)
+    args.func(args)
+
+
+if __name__ == "__main__":
+    main()
