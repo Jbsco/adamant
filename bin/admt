@@ -132,6 +132,11 @@ def query_commands(args):
     search_dirs = _find_all_path_dirs(os.getcwd(), adamant_dir)
     components = _resolve_components(assembly, search_dirs)
 
+    assembly_data = _load_yaml(assembly)
+    # Assembly name from YAML or filename (e.g., ceres_thermal.assembly.yaml -> Ceres_Thermal)
+    basename = os.path.basename(assembly).replace(".assembly.yaml", "")
+    target = assembly_data.get("name", basename.replace("_", " ").title().replace(" ", "_"))
+
     commands = []
     for instance, comp_type in components:
         cmd_path = _find_yaml(comp_type, "commands", search_dirs)
@@ -139,7 +144,8 @@ def query_commands(args):
             continue
         cmd_data = _load_yaml(cmd_path)
         for cmd in cmd_data.get("commands", []):
-            entry = {"instance": instance, "command": cmd["name"]}
+            cosmos_cmd = f"{target} {instance}-{cmd['name']}"
+            entry = {"cosmos_cmd": cosmos_cmd, "instance": instance, "command": cmd["name"]}
             if "arg_type" in cmd:
                 entry["arg_type"] = cmd["arg_type"]
             if args.verbose and "description" in cmd:
@@ -159,7 +165,8 @@ def query_packets(args):
 
     assembly_dir = os.path.dirname(os.path.abspath(assembly))
     data = _load_yaml(assembly)
-    assembly_name = data.get("name", "")
+    basename = os.path.basename(assembly).replace(".assembly.yaml", "")
+    assembly_name = data.get("name", basename.replace("_", " ").title().replace(" ", "_"))
 
     # Find product_packets.yaml in the assembly directory
     pp_path = None
@@ -177,13 +184,17 @@ def query_packets(args):
     for pkt in pp_data.get("packets", []):
         items = []
         for dp in pkt.get("data_products", []):
-            # COSMOS item name: Instance.Dp_Name.Value (from the DP name)
             raw_name = dp.get("name", "")
-            items.append(raw_name + ".Value")
+            item_name = raw_name + ".Value"
+            items.append({
+                "cosmos_tlm": f"{assembly_name} {pkt['name']} {item_name}",
+                "item": item_name,
+            })
         packets.append({
             "name": pkt["name"],
             "id": pkt.get("id"),
             "period": pkt.get("period"),
+            "cosmos_seq": f"{assembly_name} {pkt['name']} Sequence_Count",
             "items": items,
         })
 
