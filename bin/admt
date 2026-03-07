@@ -149,6 +149,47 @@ def query_commands(args):
     print(json.dumps(commands, indent=2))
 
 
+def query_packets(args):
+    """List product packets and their items for an assembly."""
+    import json
+    assembly = args.assembly
+    if not os.path.isfile(assembly):
+        print(f"Error: not found: {assembly}", file=sys.stderr)
+        sys.exit(1)
+
+    assembly_dir = os.path.dirname(os.path.abspath(assembly))
+    data = _load_yaml(assembly)
+    assembly_name = data.get("name", "")
+
+    # Find product_packets.yaml in the assembly directory
+    pp_path = None
+    for f in os.listdir(assembly_dir):
+        if f.endswith(".product_packets.yaml"):
+            pp_path = os.path.join(assembly_dir, f)
+            break
+
+    if not pp_path:
+        print(f"Error: no product_packets.yaml found in {assembly_dir}", file=sys.stderr)
+        sys.exit(1)
+
+    pp_data = _load_yaml(pp_path)
+    packets = []
+    for pkt in pp_data.get("packets", []):
+        items = []
+        for dp in pkt.get("data_products", []):
+            # COSMOS item name: Instance.Dp_Name.Value (from the DP name)
+            raw_name = dp.get("name", "")
+            items.append(raw_name + ".Value")
+        packets.append({
+            "name": pkt["name"],
+            "id": pkt.get("id"),
+            "period": pkt.get("period"),
+            "items": items,
+        })
+
+    print(json.dumps(packets, indent=2))
+
+
 def main():
     parser = argparse.ArgumentParser(prog="admt", description="Adamant Multi-Tool")
     sub = parser.add_subparsers(dest="command")
@@ -168,6 +209,10 @@ def main():
     qcmd.add_argument("assembly", help="Path to assembly YAML file")
     qcmd.add_argument("-v", "--verbose", action="store_true", help="Include descriptions")
     qcmd.set_defaults(func=query_commands)
+
+    qpkt = query_sub.add_parser("packets", help="List product packets and their items")
+    qpkt.add_argument("assembly", help="Path to assembly YAML file")
+    qpkt.set_defaults(func=query_packets)
 
     args = parser.parse_args()
     if not hasattr(args, "func"):
