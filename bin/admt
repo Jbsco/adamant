@@ -101,6 +101,28 @@ def _load_yaml(path):
         return yaml.safe_load(f) or {}
 
 
+def _resolve_arg_fields(arg_type, search_dirs):
+    """Resolve a packed record arg_type (e.g., Packet_Id.T) to its field list."""
+    # Strip .T suffix if present
+    type_name = arg_type.rsplit(".", 1)[0] if "." in arg_type else arg_type
+    # Search for <type_name>.record.yaml
+    for variant in (type_name, type_name.lower()):
+        target = f"{variant}.record.yaml"
+        for d in search_dirs:
+            p = os.path.join(d, target)
+            if os.path.isfile(p):
+                data = _load_yaml(p)
+                fields = []
+                for f in data.get("fields", []):
+                    fields.append({
+                        "name": f["name"],
+                        "type": f.get("type", ""),
+                        "format": f.get("format", ""),
+                    })
+                return fields
+    return []
+
+
 def _resolve_components(assembly_path, search_dirs):
     """Return list of (instance_name, comp_type) from assembly + subassemblies."""
     data = _load_yaml(assembly_path)
@@ -148,6 +170,13 @@ def query_commands(args):
             entry = {"cosmos_cmd": cosmos_cmd, "instance": instance, "command": cmd["name"]}
             if "arg_type" in cmd:
                 entry["arg_type"] = cmd["arg_type"]
+                # Resolve packed record fields for COSMOS "with" syntax
+                fields = _resolve_arg_fields(cmd["arg_type"], search_dirs)
+                if fields:
+                    entry["cosmos_params"] = fields
+                    # Build example: "with FIELD1 <val>, FIELD2 <val>"
+                    parts = [f"{f['name'].upper()} <{f['format']}>" for f in fields]
+                    entry["cosmos_cmd_with"] = cosmos_cmd + " with " + ", ".join(parts)
             if args.verbose and "description" in cmd:
                 entry["description"] = cmd["description"]
             commands.append(entry)
