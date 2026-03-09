@@ -1,265 +1,347 @@
-#!/usr/bin/env python3
-"""admt -- Adamant Multi-Tool"""
-import sys
-import os
-import argparse
+#!/bin/bash
+# admt -- Adamant Multi-Tool
+#
+# Shell-first CLI for the Adamant embedded software framework.
+# Works inside and outside the development container.
+#
+#   Outside: container management runs directly; redo/Python forwarded in
+#   Inside:  all commands run directly
 
+set -euo pipefail
 
-def new_component(args):
-    name = args.name
-    dest = os.path.join(args.dir, name) if args.dir else name
+ADMT_SCRIPT="$(readlink -f "${BASH_SOURCE[0]}")"
+ADMT_BIN="$(dirname "$ADMT_SCRIPT")"
+ADAMANT_ROOT="$(dirname "$ADMT_BIN")"
 
-    if os.path.exists(dest):
-        print(f"Error: '{dest}' already exists.", file=sys.stderr)
-        sys.exit(1)
+# ─── Helpers ────────────────────────────────────────────────────────────
 
-    # Component dir + test dir
-    test_dir = os.path.join(dest, "test")
-    os.makedirs(test_dir)
+_in_container() {
+    [ -f /.dockerenv ] || [ -f /run/.containerenv ]
+}
 
-    # .all_path (empty, required by redo)
-    open(os.path.join(dest, ".all_path"), "w").close()
+_project_name() {
+    basename "$ADAMANT_ROOT"
+}
 
-    # component.yaml
-    with open(os.path.join(dest, f"{name}.component.yaml"), "w") as f:
-        f.write(f"---\ndescription: TODO\nexecution: passive\nconnectors:\n")
-        f.write(f"  - description: Receive periodic tick\n    type: Tick.T\n    kind: recv_sync\n")
-        f.write(f"  - description: Get current system time\n    return_type: Sys_Time.T\n    kind: get\n")
-        f.write(f"  - description: Send events\n    type: Event.T\n    kind: send\n")
-        f.write(f"  - description: Send data products\n    type: Data_Product.T\n    kind: send\n")
+_env_sh() {
+    "${ADAMANT_ROOT}/docker/adamant_env.sh" "$@"
+}
 
-    # Implementation spec
-    ada_name = name.replace("_", " ").title().replace(" ", "_")
-    with open(os.path.join(dest, f"component-{name}-implementation.ads"), "w") as f:
-        f.write(f"with Tick;\n\n")
-        f.write(f"package Component.{ada_name}.Implementation is\n\n")
-        f.write(f"   type Instance is new {ada_name}.Base_Instance with private;\n\n")
-        f.write(f"   overriding procedure Tick_T_Recv_Sync (Self : in out Instance; Arg : in Tick.T);\n")
-        f.write(f"   overriding procedure Event_T_Send_Dropped (Self : in out Instance; Arg : in Event.T) is null;\n")
-        f.write(f"   overriding procedure Data_Product_T_Send_Dropped (Self : in out Instance; Arg : in Data_Product.T) is null;\n\n")
-        f.write(f"private\n\n")
-        f.write(f"   type Instance is new {ada_name}.Base_Instance with record\n")
-        f.write(f"      null;\n")
-        f.write(f"   end record;\n\n")
-        f.write(f"end Component.{ada_name}.Implementation;\n")
+_container_path() {
+    local host_path
+    host_path="$(readlink -f "$1" 2>/dev/null || echo "$1")"
+    local project
+    project="$(_project_name)"
+    if [[ "$host_path" == "$ADAMANT_ROOT"* ]]; then
+        echo "/home/user/${project}${host_path#"$ADAMANT_ROOT"}"
+    else
+        echo "$host_path"
+    fi
+}
 
-    # Implementation body
-    with open(os.path.join(dest, f"component-{name}-implementation.adb"), "w") as f:
-        f.write(f"package body Component.{ada_name}.Implementation is\n\n")
-        f.write(f"   overriding procedure Tick_T_Recv_Sync (Self : in out Instance; Arg : in Tick.T) is\n")
-        f.write(f"      Ignore : constant Tick.T := Arg;\n")
-        f.write(f"   begin\n")
-        f.write(f"      null; -- TODO: implement\n")
-        f.write(f"   end Tick_T_Recv_Sync;\n\n")
-        f.write(f"end Component.{ada_name}.Implementation;\n")
+# Execute a command with CWD translated to the container mount.
+_exec() {
+    if _in_container; then
+        "$@"
+    else
+        local project
+        project="$(_project_name)"
+        local container_cwd="/home/user/${project}"
+        local host_cwd
+        host_cwd="$(pwd)"
+        if [[ "$host_cwd" == "$ADAMANT_ROOT"* ]]; then
+            container_cwd="/home/user/${project}${host_cwd#"$ADAMANT_ROOT"}"
+        fi
+        local cmd="cd '${container_cwd}'"
+        for arg in "$@"; do
+            cmd+=" '${arg}'"
+        done
+        _env_sh exec "$cmd"
+    fi
+}
 
-    # test/env.py
-    with open(os.path.join(test_dir, "env.py"), "w") as f:
-        f.write("from environments import test  # noqa: F401\n")
+# Execute a command in a specific directory (host path), translated for container.
+_exec_in() {
+    local dir="$1"; shift
+    if _in_container; then
+        (cd "$dir" && "$@")
+    else
+        local container_dir
+        container_dir="$(_container_path "$dir")"
+        local cmd="cd '${container_dir}'"
+        for arg in "$@"; do
+            cmd+=" '${arg}'"
+        done
+        _env_sh exec "$cmd"
+    fi
+}
 
-    # test/tests.yaml
-    with open(os.path.join(test_dir, f"{name}.tests.yaml"), "w") as f:
-        f.write(f"---\ndescription: {name} unit tests\ntests:\n")
-        f.write(f"  - name: Test_Nominal\n    description: Nominal tick processing\n")
+# Prompt with a default value. Empty input returns the default.
+_prompt() {
+    local prompt="$1" default="$2" response
+    read -rp "${prompt} [${default}]: " response
+    echo "${response:-$default}"
+}
 
-    print(f"Created component: {dest}/")
-    print(f"  {name}.component.yaml")
-    print(f"  component-{name}-implementation.ads")
-    print(f"  component-{name}-implementation.adb")
-    print(f"  test/env.py")
-    print(f"  test/{name}.tests.yaml")
-    print(f"\nNext: edit {name}.component.yaml, then run 'redo templates'")
+# Yes/no prompt. Default is "y" or "n".
+_prompt_yn() {
+    local prompt="$1" default="$2" response
+    if [ "$default" = "y" ]; then
+        read -rp "${prompt} [Y/n]: " response
+        case "${response,,}" in
+            n|no) echo "n" ;;
+            *) echo "y" ;;
+        esac
+    else
+        read -rp "${prompt} [y/N]: " response
+        case "${response,,}" in
+            y|yes) echo "y" ;;
+            *) echo "n" ;;
+        esac
+    fi
+}
 
+# ─── new component (interactive wizard) ─────────────────────────────────
 
-def _find_all_path_dirs(*roots):
-    """Find all directories containing .all_path under the given roots."""
-    dirs = []
-    for root in roots:
-        if not root or not os.path.isdir(root):
-            continue
-        for dirpath, dirnames, filenames in os.walk(root):
-            dirnames[:] = [d for d in dirnames if d != "build" and not d.startswith(".")]
-            if ".all_path" in filenames:
-                dirs.append(dirpath)
-    return dirs
+_new_component() {
+    local name="${1:-}"
+    local dir="${2:-.}"
 
+    # ── Name ──
+    if [ -z "$name" ]; then
+        read -rp "Component name (snake_case): " name
+    fi
+    if [[ ! "$name" =~ ^[a-z][a-z0-9_]*$ ]]; then
+        echo "Error: name must be snake_case (lowercase letters, digits, underscores)" >&2
+        exit 1
+    fi
 
-def _find_yaml(name, suffix, search_dirs):
-    """Find <name>.<suffix>.yaml in search_dirs, trying snake_case too."""
-    for variant in (name, name.lower()):
-        target = f"{variant}.{suffix}.yaml"
-        for d in search_dirs:
-            p = os.path.join(d, target)
-            if os.path.isfile(p):
-                return p
-    return None
+    local dest="${dir}/${name}"
+    if [ -e "$dest" ]; then
+        echo "Error: '${dest}' already exists." >&2
+        exit 1
+    fi
 
+    # ── Description ──
+    local description
+    read -rp "Description: " description
+    : "${description:=TODO}"
 
-def _load_yaml(path):
-    import yaml
-    with open(path) as f:
-        return yaml.safe_load(f) or {}
+    # ── Execution mode ──
+    echo ""
+    echo "Execution mode:"
+    echo "  1) passive — no internal task, invoked by connectors"
+    echo "  2) active  — has its own task and message queue"
+    local exec_choice
+    read -rp "Select [1]: " exec_choice
+    local execution="passive"
+    [ "$exec_choice" = "2" ] && execution="active"
 
+    # ── Connector selection ──
+    echo ""
+    echo "Connectors:"
+    local tick systime events dataprods commands packets
+    tick="$(_prompt_yn "  Tick receiver?" "y")"
+    systime="$(_prompt_yn "  System time getter?" "y")"
+    events="$(_prompt_yn "  Event sender?" "y")"
+    dataprods="$(_prompt_yn "  Data product sender?" "y")"
+    commands="$(_prompt_yn "  Command handler?" "n")"
+    packets="$(_prompt_yn "  Packet sender?" "n")"
 
-def _resolve_arg_fields(arg_type, search_dirs):
-    """Resolve a packed record arg_type (e.g., Packet_Id.T) to its field list."""
-    # Strip .T suffix if present
-    type_name = arg_type.rsplit(".", 1)[0] if "." in arg_type else arg_type
-    # Search for <type_name>.record.yaml
-    for variant in (type_name, type_name.lower()):
-        target = f"{variant}.record.yaml"
-        for d in search_dirs:
-            p = os.path.join(d, target)
-            if os.path.isfile(p):
-                data = _load_yaml(p)
-                fields = []
-                for f in data.get("fields", []):
-                    fields.append({
-                        "name": f["name"],
-                        "type": f.get("type", ""),
-                        "format": f.get("format", ""),
-                    })
-                return fields
-    return []
+    # ── Write scaffold ──
+    echo ""
+    mkdir -p "${dest}/test"
+    touch "${dest}/.all_path"
 
+    # component YAML
+    local yaml="${dest}/${name}.component.yaml"
+    {
+        echo "---"
+        echo "description: ${description}"
+        echo "execution: ${execution}"
+        echo "connectors:"
 
-def _resolve_components(assembly_path, search_dirs):
-    """Return list of (instance_name, comp_type) from assembly + subassemblies."""
-    data = _load_yaml(assembly_path)
-    assembly_dir = os.path.dirname(os.path.abspath(assembly_path))
-    components = []
+        if [ "$tick" = "y" ]; then
+            local tick_kind="recv_sync"
+            [ "$execution" = "active" ] && tick_kind="recv_async"
+            echo "  - description: Receive periodic tick"
+            echo "    type: Tick.T"
+            echo "    kind: ${tick_kind}"
+        fi
 
-    for c in data.get("components", []):
-        components.append((c.get("name", c["type"] + "_Instance"), c["type"]))
+        if [ "$systime" = "y" ]; then
+            echo "  - description: Get current system time"
+            echo "    return_type: Sys_Time.T"
+            echo "    kind: get"
+        fi
 
-    for sub in data.get("subassemblies", []):
-        sub_name = sub if isinstance(sub, str) else sub.get("type", sub.get("name", ""))
-        sub_path = _find_yaml(sub_name, "assembly", [assembly_dir] + search_dirs)
-        if sub_path:
-            sub_data = _load_yaml(sub_path)
-            for c in sub_data.get("components", []):
-                components.append((c.get("name", c["type"] + "_Instance"), c["type"]))
-    return components
+        if [ "$events" = "y" ]; then
+            echo "  - description: Send events"
+            echo "    type: Event.T"
+            echo "    kind: send"
+        fi
 
+        if [ "$dataprods" = "y" ]; then
+            echo "  - description: Send data products"
+            echo "    type: Data_Product.T"
+            echo "    kind: send"
+        fi
 
-def query_commands(args):
-    """List all commands in an assembly."""
-    import json
-    assembly = args.assembly
-    if not os.path.isfile(assembly):
-        print(f"Error: not found: {assembly}", file=sys.stderr)
-        sys.exit(1)
+        if [ "$commands" = "y" ]; then
+            echo "  - description: Receive commands"
+            echo "    type: Command.T"
+            echo "    kind: recv_sync"
+            echo "  - description: Send command responses"
+            echo "    type: Command_Response.T"
+            echo "    kind: send"
+        fi
 
-    adamant_dir = os.environ.get("ADAMANT_DIR", "")
-    search_dirs = _find_all_path_dirs(os.getcwd(), adamant_dir)
-    components = _resolve_components(assembly, search_dirs)
+        if [ "$packets" = "y" ]; then
+            echo "  - description: Send telemetry packets"
+            echo "    type: Packet.T"
+            echo "    kind: send"
+        fi
+    } > "$yaml"
 
-    assembly_data = _load_yaml(assembly)
-    # Assembly name from YAML or filename (e.g., ceres_thermal.assembly.yaml -> Ceres_Thermal)
-    basename = os.path.basename(assembly).replace(".assembly.yaml", "")
-    target = assembly_data.get("name", basename.replace("_", " ").title().replace(" ", "_"))
+    # test scaffold
+    echo "from environments import test  # noqa: F401" > "${dest}/test/env.py"
+    cat > "${dest}/test/${name}.tests.yaml" << EOF
+---
+description: ${name} unit tests
+tests:
+  - name: Test_Nominal
+    description: Nominal behavior
+EOF
 
-    commands = []
-    for instance, comp_type in components:
-        cmd_path = _find_yaml(comp_type, "commands", search_dirs)
-        if not cmd_path:
-            continue
-        cmd_data = _load_yaml(cmd_path)
-        for cmd in cmd_data.get("commands", []):
-            cosmos_cmd = f"{target} {instance}-{cmd['name']}"
-            entry = {"cosmos_cmd": cosmos_cmd, "instance": instance, "command": cmd["name"]}
-            if "arg_type" in cmd:
-                entry["arg_type"] = cmd["arg_type"]
-                # Resolve packed record fields for COSMOS "with" syntax
-                fields = _resolve_arg_fields(cmd["arg_type"], search_dirs)
-                if fields:
-                    entry["cosmos_params"] = fields
-                    # Build example: "with FIELD1 <val>, FIELD2 <val>"
-                    parts = [f"{f['name'].upper()} <{f['format']}>" for f in fields]
-                    entry["cosmos_cmd_with"] = cosmos_cmd + " with " + ", ".join(parts)
-            if args.verbose and "description" in cmd:
-                entry["description"] = cmd["description"]
-            commands.append(entry)
+    echo "Created ${dest}/"
+    echo "  ${name}.component.yaml"
+    echo "  test/env.py"
+    echo "  test/${name}.tests.yaml"
 
-    print(json.dumps(commands, indent=2))
+    # ── Generate implementation templates via redo ──
+    local abs_dest
+    abs_dest="$(readlink -f "$dest")"
+    echo ""
+    echo "Running redo templates..."
+    if _exec_in "$abs_dest" redo templates 2>&1; then
+        local template_dir="${abs_dest}/build/template"
+        if [ -d "$template_dir" ]; then
+            # shellcheck disable=SC2086
+            cp ${template_dir}/component-${name}-implementation.* "${abs_dest}/" 2>/dev/null && {
+                echo ""
+                echo "Implementation templates copied:"
+                ls -1 "${abs_dest}/component-${name}-implementation."* 2>/dev/null | while read -r f; do
+                    echo "  $(basename "$f")"
+                done
+            }
+        fi
+        echo ""
+        echo "Next: edit component-${name}-implementation.adb"
+    else
+        echo ""
+        echo "redo templates failed (container may not be running)."
+        echo "To generate implementation files manually:"
+        echo "  cd ${dest} && redo templates"
+        echo "  cp build/template/component-${name}-implementation.* ."
+    fi
+}
 
+# ─── Main dispatch ──────────────────────────────────────────────────────
 
-def query_packets(args):
-    """List product packets and their items for an assembly."""
-    import json
-    assembly = args.assembly
-    if not os.path.isfile(assembly):
-        print(f"Error: not found: {assembly}", file=sys.stderr)
-        sys.exit(1)
+_usage() {
+    cat << 'EOF'
+admt -- Adamant Multi-Tool
 
-    assembly_dir = os.path.dirname(os.path.abspath(assembly))
-    data = _load_yaml(assembly)
-    basename = os.path.basename(assembly).replace(".assembly.yaml", "")
-    assembly_name = data.get("name", basename.replace("_", " ").title().replace(" ", "_"))
+Usage: admt <command> [args...]
 
-    # Find product_packets.yaml in the assembly directory
-    pp_path = None
-    for f in os.listdir(assembly_dir):
-        if f.endswith(".product_packets.yaml"):
-            pp_path = os.path.join(assembly_dir, f)
-            break
+Container:
+  start                Start the development container
+  stop                 Stop the container
+  login                Login to the container
+  remove [force]       Remove container, volumes, and network
 
-    if not pp_path:
-        print(f"Error: no product_packets.yaml found in {assembly_dir}", file=sys.stderr)
-        sys.exit(1)
+Development:
+  new component [NAME] [--dir DIR]
+                       Interactive wizard to create a component
 
-    pp_data = _load_yaml(pp_path)
-    packets = []
-    for pkt in pp_data.get("packets", []):
-        items = []
-        for dp in pkt.get("data_products", []):
-            raw_name = dp.get("name", "")
-            item_name = raw_name + ".Value"
-            items.append({
-                "cosmos_tlm": f"{assembly_name} {pkt['name']} {item_name}",
-                "item": item_name,
-            })
-        packets.append({
-            "name": pkt["name"],
-            "id": pkt.get("id"),
-            "period": pkt.get("period"),
-            "cosmos_seq": f"{assembly_name} {pkt['name']} Sequence_Count",
-            "items": items,
-        })
+Build:
+  build [TARGET...]    Run redo (forwarded into container)
+  clean [TARGET...]    Run redo clean
 
-    print(json.dumps(packets, indent=2))
+General:
+  exec CMD...          Run a command in the container
+  help                 Show this help
 
+Docker image management (pull, push, buildx, pushx) is available
+via adamant_env.sh directly.
+EOF
+    exit "${1:-1}"
+}
 
-def main():
-    parser = argparse.ArgumentParser(prog="admt", description="Adamant Multi-Tool")
-    sub = parser.add_subparsers(dest="command")
+if [ $# -eq 0 ]; then
+    _usage
+fi
 
-    # new
-    new_parser = sub.add_parser("new", help="Create new Adamant artifacts")
-    new_sub = new_parser.add_subparsers(dest="new_type")
-    comp = new_sub.add_parser("component", help="Create a new component scaffold")
-    comp.add_argument("name", help="Component name (snake_case)")
-    comp.add_argument("--dir", default=".", help="Parent directory (default: current)")
-    comp.set_defaults(func=new_component)
+case "$1" in
+    # ── Container management ──
+    start)   _env_sh start ;;
+    stop)    _env_sh stop ;;
+    login)   _env_sh login ;;
+    remove)  shift; _env_sh remove "$@" ;;
 
-    # query
-    query_parser = sub.add_parser("query", help="Query assembly models")
-    query_sub = query_parser.add_subparsers(dest="query_type")
-    qcmd = query_sub.add_parser("commands", help="List all commands in an assembly")
-    qcmd.add_argument("assembly", help="Path to assembly YAML file")
-    qcmd.add_argument("-v", "--verbose", action="store_true", help="Include descriptions")
-    qcmd.set_defaults(func=query_commands)
+    # ── Arbitrary exec ──
+    exec)
+        shift
+        if [ $# -eq 0 ]; then
+            echo "Usage: admt exec CMD..." >&2
+            exit 1
+        fi
+        _exec "$@"
+        ;;
 
-    qpkt = query_sub.add_parser("packets", help="List product packets and their items")
-    qpkt.add_argument("assembly", help="Path to assembly YAML file")
-    qpkt.set_defaults(func=query_packets)
+    # ── Component wizard ──
+    new)
+        shift
+        case "${1:-}" in
+            component)
+                shift
+                name=""
+                dir="."
+                while [ $# -gt 0 ]; do
+                    case "$1" in
+                        --dir) dir="$2"; shift 2 ;;
+                        -*) echo "Unknown option: $1" >&2; exit 1 ;;
+                        *) name="$1"; shift ;;
+                    esac
+                done
+                _new_component "$name" "$dir"
+                ;;
+            *)
+                echo "Usage: admt new component [NAME] [--dir DIR]" >&2
+                exit 1
+                ;;
+        esac
+        ;;
 
-    args = parser.parse_args()
-    if not hasattr(args, "func"):
-        parser.print_help()
-        sys.exit(1)
-    args.func(args)
+    # ── Build system ──
+    build)
+        shift
+        _exec redo "$@"
+        ;;
 
+    clean)
+        shift
+        _exec redo clean "$@"
+        ;;
 
-if __name__ == "__main__":
-    main()
+    # ── Help ──
+    -h|--help|help)
+        _usage 0
+        ;;
+
+    *)
+        echo "Unknown command: $1" >&2
+        echo ""
+        _usage
+        ;;
+esac
