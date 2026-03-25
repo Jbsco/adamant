@@ -24,6 +24,7 @@ assembly_templates = [
     "assembly/name_packets.ads",
     "assembly/name_faults.ads",
     "assembly/name_events.py",
+    "assembly/name_data_products.py",
     "assembly/name_events.m",
     "assembly/name_commands.html",
     "assembly/name_events.html",
