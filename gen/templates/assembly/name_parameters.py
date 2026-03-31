@@ -14,8 +14,28 @@ from util import entity_class_generator as ecg
 from {{ param.type_package|lower }} import {{ param.type_package }}
 {% endif %}
 {% endfor %}
+
+# Parameter ID constants:
+{% for id, param in parameters.items() %}
+{{ param.suite.component.instance_name }}_{{ param.name }} = {{ param.id }}
+{% endfor %}
 {% endif %}
 
+# Reverse lookup: ID to name string
+parameter_id_to_name = {
+{% for id, param in parameters.items() %}
+    {{ param.id }}: "{{ param.suite.component.instance_name }}.{{ param.name }}"{{ "," if not loop.last }}
+{% endfor %}
+}
+
+# Forward lookup: name string to ID
+parameter_name_to_id = {
+{% for id, param in parameters.items() %}
+    "{{ param.suite.component.instance_name }}.{{ param.name }}": {{ param.id }}{{ "," if not loop.last }}
+{% endfor %}
+}
+
+# ID to entity class mapping:
 parameter_id_cls_dict = {
 {% for id, param in parameters.items() %}
     {{ id }}: ecg.create_entity_cls(

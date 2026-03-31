@@ -15,8 +15,28 @@ from packet import Packet
 from {{ packet.type_package|lower }} import {{ packet.type_package }}
 {% endif %}
 {% endfor %}
+
+# Packet ID constants:
+{% for id, packet in packets.items() %}
+{{ packet.full_name|replace(".","_") }} = {{ packet.id }}
+{% endfor %}
 {% endif %}
 
+# Reverse lookup: ID to name string
+packet_id_to_name = {
+{% for id, packet in packets.items() %}
+    {{ packet.id }}: "{{ packet.full_name }}"{{ "," if not loop.last }}
+{% endfor %}
+}
+
+# Forward lookup: name string to ID
+packet_name_to_id = {
+{% for id, packet in packets.items() %}
+    "{{ packet.full_name }}": {{ packet.id }}{{ "," if not loop.last }}
+{% endfor %}
+}
+
+# ID to entity class mapping:
 packet_id_cls_dict = {
 {% for id, packet in packets.items() %}
 {% set parts = packet.full_name.split('.') %}

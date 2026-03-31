@@ -15,8 +15,28 @@ from data_product import Data_Product
 from {{ dp.type_package|lower }} import {{ dp.type_package }}
 {% endif %}
 {% endfor %}
+
+# Data product ID constants:
+{% for id, dp in data_products.items() %}
+{{ dp.suite.component.instance_name }}_{{ dp.name }} = {{ dp.id }}
+{% endfor %}
 {% endif %}
 
+# Reverse lookup: ID to name string
+data_product_id_to_name = {
+{% for id, dp in data_products.items() %}
+    {{ dp.id }}: "{{ dp.suite.component.instance_name }}.{{ dp.name }}"{{ "," if not loop.last }}
+{% endfor %}
+}
+
+# Forward lookup: name string to ID
+data_product_name_to_id = {
+{% for id, dp in data_products.items() %}
+    "{{ dp.suite.component.instance_name }}.{{ dp.name }}": {{ dp.id }}{{ "," if not loop.last }}
+{% endfor %}
+}
+
+# ID to entity class mapping:
 data_product_id_cls_dict = {
 {% for id, dp in data_products.items() %}
     {{ id }}: ecg.create_entity_cls(
