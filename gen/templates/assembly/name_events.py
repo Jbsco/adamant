@@ -44,6 +44,6 @@ event_id_cls_dict = {
         "{{ event.suite.component.instance_name }}",
         "{{ event.name }}",
         {% if event.type_model %}{{ event.type_package }}{% else %}None{% endif %},
-        "{{ event.description|default('', true)|replace('"', '\\"') }}"{{ "\n    " }}){{ "," if not loop.last }}
+        "{{ event.description|default('', true)|replace('\n', ' ')|replace('"', '\\"') }}"{{ "\n    " }}){{ "," if not loop.last }}
 {% endfor %}
 }

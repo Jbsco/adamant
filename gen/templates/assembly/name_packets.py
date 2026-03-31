@@ -45,7 +45,7 @@ packet_id_cls_dict = {
         "{{ parts[0] if parts|length > 1 else '' }}",
         "{{ parts[1] if parts|length > 1 else packet.name }}",
         {% if packet.type_model %}{{ packet.type_package }}{% else %}None{% endif %},
-        "{{ packet.description|default('', true)|replace('"', '\\"') }}",
+        "{{ packet.description|default('', true)|replace('\n', ' ')|replace('"', '\\"') }}",
         "Buffer"{{ "\n    " }}){{ "," if not loop.last }}
 {% endfor %}
 }

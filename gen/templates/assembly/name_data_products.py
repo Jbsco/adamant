@@ -44,7 +44,7 @@ data_product_id_cls_dict = {
         "{{ dp.suite.component.instance_name }}",
         "{{ dp.name }}",
         {% if dp.type_model %}{{ dp.type_package }}{% else %}None{% endif %},
-        "{{ dp.description|default('', true)|replace('"', '\\"') }}",
+        "{{ dp.description|default('', true)|replace('\n', ' ')|replace('"', '\\"') }}",
         "Buffer"{{ "\n    " }}){{ "," if not loop.last }}
 {% endfor %}
 }

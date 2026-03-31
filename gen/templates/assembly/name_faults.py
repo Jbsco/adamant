@@ -44,6 +44,6 @@ fault_id_cls_dict = {
         "{{ fault.suite.component.instance_name }}",
         "{{ fault.name }}",
         {% if fault.type_model %}{{ fault.type_package }}{% else %}None{% endif %},
-        "{{ fault.description|default('', true)|replace('"', '\\"') }}"{{ "\n    " }}){{ "," if not loop.last }}
+        "{{ fault.description|default('', true)|replace('\n', ' ')|replace('"', '\\"') }}"{{ "\n    " }}){{ "," if not loop.last }}
 {% endfor %}
 }

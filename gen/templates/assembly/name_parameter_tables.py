@@ -38,6 +38,6 @@ parameter_table_id_cls_dict = {
         "{{ sub.parameters_instance_name }}",
         "{{ sub.name }}",
         None,
-        "{{ sub.description|default('', true)|replace('"', '\\"') }}"{{ "\n    " }}){{ "," if not loop.last }}
+        "{{ sub.description|default('', true)|replace('\n', ' ')|replace('"', '\\"') }}"{{ "\n    " }}){{ "," if not loop.last }}
 {% endfor %}
 }

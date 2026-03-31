@@ -44,7 +44,7 @@ command_id_cls_dict = {
         "{{ command.suite.component.instance_name }}",
         "{{ command.name }}",
         {% if command.type_model %}{{ command.type_package }}{% else %}None{% endif %},
-        "{{ command.description|default('', true)|replace('"', '\\"') }}",
+        "{{ command.description|default('', true)|replace('\n', ' ')|replace('"', '\\"') }}",
         "Arg_Buffer"{{ "\n    " }}){{ "," if not loop.last }}
 {% endfor %}
 }

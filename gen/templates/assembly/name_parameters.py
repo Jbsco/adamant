@@ -43,6 +43,6 @@ parameter_id_cls_dict = {
         "{{ param.suite.component.instance_name }}",
         "{{ param.name }}",
         {% if param.type_model %}{{ param.type_package }}{% else %}None{% endif %},
-        "{{ param.description|default('', true)|replace('"', '\\"') }}"{{ "\n    " }}){{ "," if not loop.last }}
+        "{{ param.description|default('', true)|replace('\n', ' ')|replace('"', '\\"') }}"{{ "\n    " }}){{ "," if not loop.last }}
 {% endfor %}
 }
