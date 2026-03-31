@@ -3,8 +3,9 @@
 #
 # Generated from {{ filename }} on {{ time }}.
 ################################################################################
-from util import entity_class_generator as ecg
 {% if commands.items() %}
+from util import entity_class_generator as ecg
+from command import Command
 
 # Import command argument types:
 {% set imports = [] %}
@@ -18,11 +19,12 @@ from {{ command.type_package|lower }} import {{ command.type_package }}
 
 command_id_cls_dict = {
 {% for id, command in commands.items() %}
-    {{ id }}: ecg.create_entity_entry(
+    {{ id }}: ecg.create_entity_cls(
+        Command,
         "{{ command.suite.component.instance_name }}",
         "{{ command.name }}",
-        {{ command.id }},
         {% if command.type_model %}{{ command.type_package }}{% else %}None{% endif %},
-        "{{ command.description|default('', true)|replace('"', '\\"') }}"{{ "\n    " }}){{ "," if not loop.last }}
+        "{{ command.description|default('', true)|replace('"', '\\"') }}",
+        "Arg_Buffer"{{ "\n    " }}){{ "," if not loop.last }}
 {% endfor %}
 }

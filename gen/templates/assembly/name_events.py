@@ -4,7 +4,8 @@
 # Generated from {{ filename }} on {{ time }}.
 ################################################################################
 {% if events.items() %}
-from util import event_class_generator as ecg
+from util import entity_class_generator as ecg
+from event import Event
 
 # Import event parameter types:
 {% set imports = [] %}
@@ -18,7 +19,8 @@ from {{ event.type_package|lower }} import {{ event.type_package }}
 
 event_id_cls_dict = {
 {% for id, event in events.items() %}
-    {{ id }}: ecg.create_event_cls(
+    {{ id }}: ecg.create_entity_cls(
+        Event,
         "{{ event.suite.component.instance_name }}",
         "{{ event.name }}",
         {% if event.type_model %}{{ event.type_package }}{% else %}None{% endif %},

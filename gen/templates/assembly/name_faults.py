@@ -3,8 +3,9 @@
 #
 # Generated from {{ filename }} on {{ time }}.
 ################################################################################
-from util import entity_class_generator as ecg
 {% if faults.items() %}
+from util import entity_class_generator as ecg
+from fault import Fault
 
 # Import fault parameter types:
 {% set imports = [] %}
@@ -18,10 +19,10 @@ from {{ fault.type_package|lower }} import {{ fault.type_package }}
 
 fault_id_cls_dict = {
 {% for id, fault in faults.items() %}
-    {{ id }}: ecg.create_entity_entry(
+    {{ id }}: ecg.create_entity_cls(
+        Fault,
         "{{ fault.suite.component.instance_name }}",
         "{{ fault.name }}",
-        {{ fault.id }},
         {% if fault.type_model %}{{ fault.type_package }}{% else %}None{% endif %},
         "{{ fault.description|default('', true)|replace('"', '\\"') }}"{{ "\n    " }}){{ "," if not loop.last }}
 {% endfor %}

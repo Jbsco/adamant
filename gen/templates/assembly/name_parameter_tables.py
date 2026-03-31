@@ -7,10 +7,10 @@ from util import entity_class_generator as ecg
 
 parameter_table_id_cls_dict = {
 {% for path, sub in submodels.items() if sub.table_id is defined %}
-    {{ sub.table_id }}: ecg.create_entity_entry(
+    {{ sub.table_id }}: ecg.create_entity_cls(
+        None,
         "{{ sub.parameters_instance_name }}",
         "{{ sub.name }}",
-        {{ sub.table_id }},
         None,
         "{{ sub.description|default('', true)|replace('"', '\\"') }}"{{ "\n    " }}){{ "," if not loop.last }}
 {% endfor %}
