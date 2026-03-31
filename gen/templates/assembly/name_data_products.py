@@ -3,23 +3,26 @@
 #
 # Generated from {{ filename }} on {{ time }}.
 ################################################################################
+from util import entity_class_generator as ecg
 {% if data_products.items() %}
 
-# Data product ID-to-name mapping for the {{ name }} assembly.
+# Import data product value types:
+{% set imports = [] %}
 {% for id, dp in data_products.items() %}
-{{ dp.suite.component.instance_name }}_{{ dp.name }} = {{ dp.id }}
+{% if dp.type_model and dp.type_package not in imports %}
+{% do imports.append(dp.type_package) %}
+from {{ dp.type_package|lower }} import {{ dp.type_package }}
+{% endif %}
 {% endfor %}
 {% endif %}
-# Reverse lookup: ID to name string
-data_product_id_to_name = {
-{% for id, dp in data_products.items() %}
-    {{ dp.id }}: "{{ dp.suite.component.instance_name }}.{{ dp.name }}"{{ "," if not loop.last }}
-{% endfor %}
-}
 
-# Forward lookup: name string to ID
-data_product_name_to_id = {
+data_product_id_cls_dict = {
 {% for id, dp in data_products.items() %}
-    "{{ dp.suite.component.instance_name }}.{{ dp.name }}": {{ dp.id }}{{ "," if not loop.last }}
+    {{ id }}: ecg.create_entity_entry(
+        "{{ dp.suite.component.instance_name }}",
+        "{{ dp.name }}",
+        {{ dp.id }},
+        {% if dp.type_model %}{{ dp.type_package }}{% else %}None{% endif %},
+        "{{ dp.description|default('', true)|replace('"', '\\"') }}"{{ "\n    " }}){{ "," if not loop.last }}
 {% endfor %}
 }

@@ -3,23 +3,26 @@
 #
 # Generated from {{ filename }} on {{ time }}.
 ################################################################################
+from util import entity_class_generator as ecg
 {% if faults.items() %}
 
-# Fault ID-to-name mapping for the {{ name }} assembly.
+# Import fault parameter types:
+{% set imports = [] %}
 {% for id, fault in faults.items() %}
-{{ fault.suite.component.instance_name }}_{{ fault.name }} = {{ fault.id }}
+{% if fault.type_model and fault.type_package not in imports %}
+{% do imports.append(fault.type_package) %}
+from {{ fault.type_package|lower }} import {{ fault.type_package }}
+{% endif %}
 {% endfor %}
 {% endif %}
-# Reverse lookup: ID to name string
-fault_id_to_name = {
-{% for id, fault in faults.items() %}
-    {{ fault.id }}: "{{ fault.suite.component.instance_name }}.{{ fault.name }}"{{ "," if not loop.last }}
-{% endfor %}
-}
 
-# Forward lookup: name string to ID
-fault_name_to_id = {
+fault_id_cls_dict = {
 {% for id, fault in faults.items() %}
-    "{{ fault.suite.component.instance_name }}.{{ fault.name }}": {{ fault.id }}{{ "," if not loop.last }}
+    {{ id }}: ecg.create_entity_entry(
+        "{{ fault.suite.component.instance_name }}",
+        "{{ fault.name }}",
+        {{ fault.id }},
+        {% if fault.type_model %}{{ fault.type_package }}{% else %}None{% endif %},
+        "{{ fault.description|default('', true)|replace('"', '\\"') }}"{{ "\n    " }}){{ "," if not loop.last }}
 {% endfor %}
 }
