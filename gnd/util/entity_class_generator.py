@@ -1,28 +1,35 @@
-def create_entity_cls(
+def _create_entity_cls(
     base_cls,
     component_instance_name,
     entity_name,
+    entity_id,
     param_type_cls,
     description="",
     buffer_field="Param_Buffer",
+    buffer_length_field="Param_Buffer_Length",
+    header_cls=None,
+    build_header=None,
 ):
     """
-    Generic class factory for Adamant ID'd entities. Creates a subclass of
-    base_cls (Event, Data_Product, Packet, Fault, etc.) that:
+    Internal class factory for Adamant ID'd entities. Creates a subclass of
+    base_cls that serializes/deserializes a typed payload and pretty-prints
+    with timestamp, component, name, ID, and decoded param.
 
-      - Accepts a typed Param/Buffer kwarg and serializes it into the base
-        class's buffer field on construction
-      - Decodes the buffer back into the typed parameter on deserialization
-      - Pretty-prints with timestamp, component, name, ID, and decoded param
+    Use the entity-specific public functions below instead of calling this
+    directly.
 
     Parameters:
       base_cls                 - The autocoded packed type base (e.g. Event, Data_Product)
       component_instance_name  - Assembly component instance name
       entity_name              - Entity name within the component
+      entity_id                - Numeric ID assigned in the assembly
       param_type_cls           - Packed type class for the payload, or None
       description              - Human-readable description string
       buffer_field             - Name of the buffer field on base_cls
-                                 ("Param_Buffer" for Event/Fault, "Buffer" for Data_Product/Packet)
+      buffer_length_field      - Name of the buffer length field on the header
+      header_cls               - Header class to auto-construct
+      build_header             - Callable(entity_id, param_size, Time) -> Header,
+                                 used when Header is not explicitly provided
     """
 
     # When no base class is provided (e.g. parameters), return a
@@ -30,6 +37,7 @@ def create_entity_cls(
     if base_cls is None:
         _cin = component_instance_name
         _en = entity_name
+        _eid = entity_id
         _desc = description
         _ptc = param_type_cls
 
@@ -37,6 +45,7 @@ def create_entity_cls(
             __slots__ = ()
             component_instance_name = _cin
             entity_name = _en
+            id = _eid
             description = _desc
             param_type_cls = _ptc
 
@@ -46,12 +55,15 @@ def create_entity_cls(
         return EntityEntry
 
     class SpecificEntity(base_cls):
-        def __init__(self, Header=None, Param=None):
+        id = entity_id
+
+        def __init__(self, Header=None, Param=None, Time=None):
             self.component_instance_name = component_instance_name
             self.entity_name = entity_name
             self.description = description
             self.has_param = False
             param_buffer = None
+            param_size = 0
             if Param is not None:
                 self.has_param = True
                 if param_type_cls is not None:
@@ -62,7 +74,12 @@ def create_entity_cls(
                         + str(type(Param))
                     )
                 param_buffer = list(Param.to_byte_array())
+                param_size = len(param_buffer)
             self.Param = Param
+
+            # Auto-construct header when not provided explicitly:
+            if Header is None and build_header is not None:
+                Header = build_header(entity_id, param_size, Time)
 
             super(SpecificEntity, self).__init__(
                 Header=Header, **{buffer_field: param_buffer}
@@ -112,11 +129,105 @@ def create_entity_cls(
     return SpecificEntity
 
 
+# -----------------------------------------------------------------------
+# Entity-specific public factories
+# -----------------------------------------------------------------------
+
+def create_event_cls(component_instance_name, entity_name, entity_id, param_type_cls, description=""):
+    from event import Event
+    from event_header import Event_Header
+
+    def _build_header(eid, param_size, time):
+        return Event_Header(Time=time, Id=eid, Param_Buffer_Length=param_size)
+
+    return _create_entity_cls(
+        Event, component_instance_name, entity_name, entity_id, param_type_cls, description,
+        buffer_field="Param_Buffer",
+        buffer_length_field="Param_Buffer_Length",
+        header_cls=Event_Header,
+        build_header=_build_header,
+    )
+
+
+def create_command_cls(component_instance_name, entity_name, entity_id, param_type_cls, description=""):
+    from command import Command
+    from command_header import Command_Header
+
+    def _build_header(eid, param_size, time):
+        return Command_Header(Id=eid, Arg_Buffer_Length=param_size)
+
+    return _create_entity_cls(
+        Command, component_instance_name, entity_name, entity_id, param_type_cls, description,
+        buffer_field="Arg_Buffer",
+        buffer_length_field="Arg_Buffer_Length",
+        header_cls=Command_Header,
+        build_header=_build_header,
+    )
+
+
+def create_data_product_cls(component_instance_name, entity_name, entity_id, param_type_cls, description=""):
+    from data_product import Data_Product
+    from data_product_header import Data_Product_Header
+
+    def _build_header(eid, param_size, time):
+        return Data_Product_Header(Time=time, Id=eid, Buffer_Length=param_size)
+
+    return _create_entity_cls(
+        Data_Product, component_instance_name, entity_name, entity_id, param_type_cls, description,
+        buffer_field="Buffer",
+        buffer_length_field="Buffer_Length",
+        header_cls=Data_Product_Header,
+        build_header=_build_header,
+    )
+
+
+def create_packet_cls(component_instance_name, entity_name, entity_id, param_type_cls, description=""):
+    from packet import Packet
+    from packet_header import Packet_Header
+
+    def _build_header(eid, param_size, time):
+        return Packet_Header(Time=time, Id=eid, Buffer_Length=param_size)
+
+    return _create_entity_cls(
+        Packet, component_instance_name, entity_name, entity_id, param_type_cls, description,
+        buffer_field="Buffer",
+        buffer_length_field="Buffer_Length",
+        header_cls=Packet_Header,
+        build_header=_build_header,
+    )
+
+
+def create_fault_cls(component_instance_name, entity_name, entity_id, param_type_cls, description=""):
+    from fault import Fault
+    from fault_header import Fault_Header
+
+    def _build_header(eid, param_size, time):
+        return Fault_Header(Time=time, Id=eid, Param_Buffer_Length=param_size)
+
+    return _create_entity_cls(
+        Fault, component_instance_name, entity_name, entity_id, param_type_cls, description,
+        buffer_field="Param_Buffer",
+        buffer_length_field="Param_Buffer_Length",
+        header_cls=Fault_Header,
+        build_header=_build_header,
+    )
+
+
+def create_parameter_cls(component_instance_name, entity_name, entity_id, param_type_cls, description=""):
+    return _create_entity_cls(
+        None, component_instance_name, entity_name, entity_id, param_type_cls, description,
+    )
+
+
+def create_parameter_table_cls(component_instance_name, entity_name, entity_id, description=""):
+    return _create_entity_cls(
+        None, component_instance_name, entity_name, entity_id, None, description,
+    )
+
+
 # Testing code:
 if __name__ == "__main__":
     # Build our dependencies using the build system.
-    # This is necessary because some of the dependencies we
-    # have are autogenerated.
     from util import pydep
 
     pydep.build_py_deps()
@@ -126,88 +237,120 @@ if __name__ == "__main__":
     from tick import Tick
     from sys_time import Sys_Time
     from event_header import Event_Header
-    from data_product_header import Data_Product_Header
-    from fault_header import Fault_Header
 
     # ------------------------------------------------------------------
-    # Test 1: Event (Param_Buffer) — matches the old event_class_generator test
+    # Test 1: Event — auto-header construction
     # ------------------------------------------------------------------
-    tick_event_cls = create_entity_cls(
-        __import__("event").Event,
-        "My_Component", "The_Event", Tick, "A tick event occurred."
+    tick_event_cls = create_event_cls(
+        "My_Component", "The_Event", 10, Tick, "A tick event occurred."
     )
 
-    empty_event = tick_event_cls()
-    sys.stderr.write("Event empty:  " + empty_event.pretty_print_string() + "\n")
-    filled_event = tick_event_cls(
-        Header=Event_Header(
-            Time=Sys_Time(15, 7000), Id=10, Param_Buffer_Length=Tick()._size_in_bytes
-        ),
-        Param=Tick(Time=Sys_Time(15, 7000), Count=15),
+    # Construct with just Param + Time — header auto-built:
+    t = Sys_Time(15, 7000)
+    auto_event = tick_event_cls(
+        Param=Tick(Time=t, Count=15),
+        Time=t,
     )
-    sys.stderr.write("Event filled: " + filled_event.pretty_print_string() + "\n")
+    sys.stderr.write("Event auto:   " + auto_event.pretty_print_string() + "\n")
+    assert auto_event.Header.Id == 10, "Auto header ID mismatch"
+    assert auto_event.Header.Param_Buffer_Length == Tick()._size_in_bytes
 
-    # Round-trip serialization:
-    empty_event.from_byte_array(filled_event.to_byte_array())
-    sys.stderr.write("Event deser:  " + empty_event.pretty_print_string() + "\n")
-    assert empty_event == filled_event, "Event round-trip failed"
-    assert filled_event.description == "A tick event occurred."
+    # Construct with explicit Header (deserialization path):
+    explicit_event = tick_event_cls(
+        Header=Event_Header(Time=t, Id=10, Param_Buffer_Length=Tick()._size_in_bytes),
+        Param=Tick(Time=t, Count=15),
+    )
+    sys.stderr.write("Event expl:   " + explicit_event.pretty_print_string() + "\n")
+    assert auto_event == explicit_event, "Auto vs explicit mismatch"
+
+    # Round-trip:
+    deser_event = tick_event_cls()
+    deser_event.from_byte_array(auto_event.to_byte_array())
+    sys.stderr.write("Event deser:  " + deser_event.pretty_print_string() + "\n")
+    assert deser_event == auto_event, "Event round-trip failed"
+
+    # Class-level id attribute:
+    assert tick_event_cls.id == 10
     sys.stderr.write("Event test PASSED\n\n")
 
     # ------------------------------------------------------------------
-    # Test 2: Data_Product (Buffer)
+    # Test 2: Data_Product — auto-header construction
     # ------------------------------------------------------------------
-    tick_dp_cls = create_entity_cls(
-        __import__("data_product").Data_Product,
-        "My_Component", "The_Dp", Tick, "A data product.", "Buffer"
+    tick_dp_cls = create_data_product_cls(
+        "My_Component", "The_Dp", 5, Tick, "A data product."
     )
 
-    empty_dp = tick_dp_cls()
-    filled_dp = tick_dp_cls(
-        Header=Data_Product_Header(
-            Time=Sys_Time(20, 8000), Id=5, Buffer_Length=Tick()._size_in_bytes
-        ),
+    auto_dp = tick_dp_cls(
         Param=Tick(Time=Sys_Time(20, 8000), Count=42),
+        Time=Sys_Time(20, 8000),
     )
-    sys.stderr.write("DP filled:    " + filled_dp.pretty_print_string() + "\n")
+    sys.stderr.write("DP auto:      " + auto_dp.pretty_print_string() + "\n")
+    assert auto_dp.Header.Id == 5
+    assert auto_dp.Header.Buffer_Length == Tick()._size_in_bytes
+    assert tick_dp_cls.id == 5
 
-    empty_dp.from_byte_array(filled_dp.to_byte_array())
-    assert empty_dp == filled_dp, "Data_Product round-trip failed"
-    assert filled_dp.description == "A data product."
+    deser_dp = tick_dp_cls()
+    deser_dp.from_byte_array(auto_dp.to_byte_array())
+    assert deser_dp == auto_dp, "Data_Product round-trip failed"
     sys.stderr.write("Data_Product test PASSED\n\n")
 
     # ------------------------------------------------------------------
-    # Test 3: Fault (Param_Buffer)
+    # Test 3: Command — auto-header (no Time)
     # ------------------------------------------------------------------
-    # Fault buffer is smaller than Event/DP, so use Sys_Time (6 bytes) as param.
-    time_fault_cls = create_entity_cls(
-        __import__("fault").Fault,
-        "My_Component", "The_Fault", Sys_Time, "A fault."
+    tick_cmd_cls = create_command_cls(
+        "My_Component", "The_Cmd", 20, Tick, "A command."
+    )
+
+    auto_cmd = tick_cmd_cls(Param=Tick(Time=Sys_Time(0, 0), Count=1))
+    assert auto_cmd.Header.Id == 20
+    assert auto_cmd.Header.Arg_Buffer_Length == Tick()._size_in_bytes
+    assert tick_cmd_cls.id == 20
+    sys.stderr.write("Command test PASSED\n\n")
+
+    # ------------------------------------------------------------------
+    # Test 4: Fault — auto-header construction
+    # ------------------------------------------------------------------
+    time_fault_cls = create_fault_cls(
+        "My_Component", "The_Fault", 7, Sys_Time, "A fault."
     )
 
     fault_param = Sys_Time(30, 9000)
-    filled_fault = time_fault_cls(
-        Header=Fault_Header(
-            Time=Sys_Time(30, 9000), Id=7, Param_Buffer_Length=fault_param._size_in_bytes
-        ),
-        Param=fault_param,
-    )
-    sys.stderr.write("Fault filled: " + filled_fault.pretty_print_string() + "\n")
+    auto_fault = time_fault_cls(Param=fault_param, Time=Sys_Time(30, 9000))
+    assert auto_fault.Header.Id == 7
+    assert time_fault_cls.id == 7
 
-    empty_fault = time_fault_cls()
-    empty_fault.from_byte_array(filled_fault.to_byte_array())
-    assert empty_fault == filled_fault, "Fault round-trip failed"
+    deser_fault = time_fault_cls()
+    deser_fault.from_byte_array(auto_fault.to_byte_array())
+    assert deser_fault == auto_fault, "Fault round-trip failed"
     sys.stderr.write("Fault test PASSED\n\n")
 
     # ------------------------------------------------------------------
-    # Test 4: Metadata-only (base_cls=None)
+    # Test 5: Parameter metadata
     # ------------------------------------------------------------------
-    entry_cls = create_entity_cls(None, "My_Component", "My_Param", Tick, "A parameter.")
+    entry_cls = create_parameter_cls("My_Component", "My_Param", 3, Tick, "A parameter.")
+    assert entry_cls.id == 3
     assert entry_cls.component_instance_name == "My_Component"
-    assert entry_cls.entity_name == "My_Param"
-    assert entry_cls.description == "A parameter."
-    assert entry_cls.param_type_cls is Tick
     assert repr(entry_cls()) == "My_Component.My_Param"
-    sys.stderr.write("Metadata-only test PASSED\n\n")
+    sys.stderr.write("Parameter metadata test PASSED\n\n")
+
+    # ------------------------------------------------------------------
+    # Test 6: Parameter table metadata
+    # ------------------------------------------------------------------
+    table_cls = create_parameter_table_cls("Params_Instance", "My_Table", 1, "A table.")
+    assert table_cls.id == 1
+    assert repr(table_cls()) == "Params_Instance.My_Table"
+    sys.stderr.write("Parameter table metadata test PASSED\n\n")
+
+    # ------------------------------------------------------------------
+    # Test 7: No-param event (Param=None)
+    # ------------------------------------------------------------------
+    bare_event_cls = create_event_cls(
+        "My_Component", "Bare_Event", 99, None, "No param."
+    )
+    bare = bare_event_cls(Time=Sys_Time(1, 0))
+    assert bare.Header.Id == 99
+    assert bare.Header.Param_Buffer_Length == 0
+    assert bare.Param is None
+    sys.stderr.write("No-param event test PASSED\n\n")
 
     sys.stderr.write("All tests PASSED\n")

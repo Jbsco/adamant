@@ -4,8 +4,7 @@
 # Generated from {{ filename }} on {{ time }}.
 ################################################################################
 {% if data_products.items() %}
-from util import entity_class_generator as ecg
-from data_product import Data_Product
+from util.entity_class_generator import create_data_product_cls
 
 # Import data product value types:
 {% set imports = [] %}
@@ -39,12 +38,11 @@ data_product_name_to_id = {
 # ID to entity class mapping:
 data_product_id_cls_dict = {
 {% for id, dp in data_products.items() %}
-    {{ id }}: ecg.create_entity_cls(
-        Data_Product,
+    {{ id }}: create_data_product_cls(
         "{{ dp.suite.component.instance_name }}",
         "{{ dp.name }}",
+        {{ id }},
         {% if dp.type_model %}{{ dp.type_package }}{% else %}None{% endif %},
-        "{{ dp.description|default('', true)|replace('\n', ' ')|replace('"', '\\"') }}",
-        "Buffer"{{ "\n    " }}){{ "," if not loop.last }}
+        "{{ dp.description|default('', true)|replace('\n', ' ')|replace('"', '\\"') }}"{{ "\n    " }}){{ "," if not loop.last }}
 {% endfor %}
 }

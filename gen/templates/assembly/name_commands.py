@@ -4,8 +4,7 @@
 # Generated from {{ filename }} on {{ time }}.
 ################################################################################
 {% if commands.items() %}
-from util import entity_class_generator as ecg
-from command import Command
+from util.entity_class_generator import create_command_cls
 
 # Import command argument types:
 {% set imports = [] %}
@@ -39,12 +38,11 @@ command_name_to_id = {
 # ID to entity class mapping:
 command_id_cls_dict = {
 {% for id, command in commands.items() %}
-    {{ id }}: ecg.create_entity_cls(
-        Command,
+    {{ id }}: create_command_cls(
         "{{ command.suite.component.instance_name }}",
         "{{ command.name }}",
+        {{ id }},
         {% if command.type_model %}{{ command.type_package }}{% else %}None{% endif %},
-        "{{ command.description|default('', true)|replace('\n', ' ')|replace('"', '\\"') }}",
-        "Arg_Buffer"{{ "\n    " }}){{ "," if not loop.last }}
+        "{{ command.description|default('', true)|replace('\n', ' ')|replace('"', '\\"') }}"{{ "\n    " }}){{ "," if not loop.last }}
 {% endfor %}
 }

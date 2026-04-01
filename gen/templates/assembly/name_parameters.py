@@ -4,7 +4,7 @@
 # Generated from {{ filename }} on {{ time }}.
 ################################################################################
 {% if parameters.items() %}
-from util import entity_class_generator as ecg
+from util.entity_class_generator import create_parameter_cls
 
 # Import parameter value types:
 {% set imports = [] %}
@@ -38,10 +38,10 @@ parameter_name_to_id = {
 # ID to entity class mapping:
 parameter_id_cls_dict = {
 {% for id, param in parameters.items() %}
-    {{ id }}: ecg.create_entity_cls(
-        None,
+    {{ id }}: create_parameter_cls(
         "{{ param.suite.component.instance_name }}",
         "{{ param.name }}",
+        {{ id }},
         {% if param.type_model %}{{ param.type_package }}{% else %}None{% endif %},
         "{{ param.description|default('', true)|replace('\n', ' ')|replace('"', '\\"') }}"{{ "\n    " }}){{ "," if not loop.last }}
 {% endfor %}

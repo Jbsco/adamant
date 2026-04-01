@@ -8,7 +8,7 @@
 {% set ns.has_tables = true %}
 {% endfor %}
 {% if ns.has_tables %}
-from util import entity_class_generator as ecg
+from util.entity_class_generator import create_parameter_table_cls
 
 # Parameter table ID constants:
 {% for path, sub in submodels.items() if sub.table_id is defined and sub.table_id is not none %}
@@ -33,11 +33,10 @@ parameter_table_name_to_id = {
 # ID to entity class mapping:
 parameter_table_id_cls_dict = {
 {% for path, sub in submodels.items() if sub.table_id is defined and sub.table_id is not none %}
-    {{ sub.table_id }}: ecg.create_entity_cls(
-        None,
+    {{ sub.table_id }}: create_parameter_table_cls(
         "{{ sub.parameters_instance_name }}",
         "{{ sub.name }}",
-        None,
+        {{ sub.table_id }},
         "{{ sub.description|default('', true)|replace('\n', ' ')|replace('"', '\\"') }}"{{ "\n    " }}){{ "," if not loop.last }}
 {% endfor %}
 }

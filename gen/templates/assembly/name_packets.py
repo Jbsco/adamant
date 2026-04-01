@@ -4,8 +4,7 @@
 # Generated from {{ filename }} on {{ time }}.
 ################################################################################
 {% if packets.items() %}
-from util import entity_class_generator as ecg
-from packet import Packet
+from util.entity_class_generator import create_packet_cls
 
 # Import packet types:
 {% set imports = [] %}
@@ -40,12 +39,11 @@ packet_name_to_id = {
 packet_id_cls_dict = {
 {% for id, packet in packets.items() %}
 {% set parts = packet.full_name.split('.') %}
-    {{ id }}: ecg.create_entity_cls(
-        Packet,
+    {{ id }}: create_packet_cls(
         "{{ parts[0] if parts|length > 1 else '' }}",
         "{{ parts[1] if parts|length > 1 else packet.name }}",
+        {{ id }},
         {% if packet.type_model %}{{ packet.type_package }}{% else %}None{% endif %},
-        "{{ packet.description|default('', true)|replace('\n', ' ')|replace('"', '\\"') }}",
-        "Buffer"{{ "\n    " }}){{ "," if not loop.last }}
+        "{{ packet.description|default('', true)|replace('\n', ' ')|replace('"', '\\"') }}"{{ "\n    " }}){{ "," if not loop.last }}
 {% endfor %}
 }
