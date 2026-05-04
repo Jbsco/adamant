@@ -1,0 +1,10 @@
+---
+description: |
+  Outer packed array whose element is the sub-byte Unaligned_Array.T
+  (8 x 10-bit Short_Int -> total 80 bits, 10 bytes). Inner's
+  T'Alignment is 16 (next pow2 of 10) but GNAT does NOT propagate
+  that to the outer -- it picks the greatest pow2 factor of element
+  byte size (10), which is 2. Adding this case prevents a regression
+  where required_alignment naively reuses the inner array's value.
+type: Unaligned_Array.T
+length: 2
