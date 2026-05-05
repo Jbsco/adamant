@@ -30,7 +30,7 @@ package body {{ name }}.C is
 {% if element.is_packed_type %}
       return [for J in Src'Range => {{ element.type_package }}.C.Pack (Src (J))];
 {% else %}
-      return [for J in Src'Range => Src (J)];
+      return {{ name }}.Pack (To_Ada (Src));
 {% endif %}
    end Pack;
 
@@ -41,7 +41,7 @@ package body {{ name }}.C is
 {% if element.is_packed_type %}
       return [for J in Src'Range => {{ element.type_package }}.C.Pack (Src (J))];
 {% else %}
-      return [for J in Src'Range => Src (J)];
+      return {{ name }}.Pack (To_Ada (Src));
 {% endif %}
    end Pack;
 
@@ -52,7 +52,7 @@ package body {{ name }}.C is
 {% if element.is_packed_type %}
       return [for J in Src'Range => {{ element.type_package }}.C.Unpack (Src (J))];
 {% else %}
-      return [for J in Src'Range => Src (J)];
+      return To_C ({{ name }}.Unpack (Src));
 {% endif %}
    end Unpack;
 
@@ -63,7 +63,7 @@ package body {{ name }}.C is
 {% if element.is_packed_type %}
       return [for J in Src'Range => {{ element.type_package }}.C.Unpack (Src (J))];
 {% else %}
-      return [for J in Src'Range => Src (J)];
+      return To_C ({{ name }}.Unpack (Src));
 {% endif %}
    end Unpack;
 
