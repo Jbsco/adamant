@@ -19,7 +19,9 @@ with Float_Array.Validation;
 with Complex_Float_Array.Validation;
 with Complex_Array_Le.Validation;
 with Float_Array;
+with Float_Array.C;
 with Complex_Float_Array;
+with Ada.Unchecked_Conversion;
 with Simple_Array.Assertion; use Simple_Array.Assertion;
 with Float_Array.Assertion; use Float_Array.Assertion;
 with Complex_Array.Assertion; use Complex_Array.Assertion;
@@ -379,6 +381,80 @@ begin
    Float_Array_Le_Assert.Eq (Flt_Le, [0 => 1.1, 1 => 1.1, 2 => 5.1, 3 => 0.4, others => 3.0], Epsilon => 50.0);
    Complex_Float_Array_Assert.Eq (Complex_Flt, [others => (Yo => 17, F => (One => 5, Two => 21.5, Three => 50.23458))], Epsilon => 0.1);
    Complex_Float_Array_U_Assert.Eq (Complex_Flt_U, [others => (Yo => 17, F => (One => 5, Two => 21.5, Three => 50.23459))], Epsilon => 0.2);
+   Put_Line ("passed.");
+   Put_Line ("");
+
+   --  Regression test for the .C.Pack / .C.Unpack round-trip across the
+   --  Scalar_Storage_Order boundary on Short_Float arrays.
+   --
+   --  Background: GNAT for some targets (observed on bareboard) does not
+   --  byte-swap Short_Float reads inside an iterated component association
+   --  whose source array has Scalar_Storage_Order /= host's. The
+   --  resulting unswapped element is then 'Valid-checked. For values
+   --  whose bit pattern, byte-reversed, lands on a NaN exponent (sign+
+   --  exponent = 0x7F8 / 0xFF8 with nonzero mantissa), the check fails
+   --  and the unpack raises CONSTRAINT_ERROR : invalid data.
+   --
+   --  9.45784093e-4 has bit pattern 0x3A77EE7F whose byte reverse,
+   --  0x7FEE773A, is exactly such a NaN. We exercise it at multiple
+   --  positions in the array, plus its negation 0xBA77EE7F (also a
+   --  NaN-on-reverse), and confirm Pack -> bytes are BE-encoded and
+   --  Unpack -> values bit-exactly match the input.
+   Put_Line ("Float_Array .C SSO byte-swap round-trip test:");
+   declare
+      function To_U32 is new Ada.Unchecked_Conversion (Short_Float, Unsigned_32);
+
+      Trap_Pos : constant Short_Float :=  9.45784093e-4;  -- 0x3A77EE7F
+      Trap_Neg : constant Short_Float := -9.45784093e-4;  -- 0xBA77EE7F
+      Other    : constant Short_Float :=  3.24796274e-4;  -- 0x39AA496B (control)
+
+      Source : constant Float_Array.C.U_C := [
+         0  => Trap_Pos, 1 => Other,    2 => 0.0,      3 => Trap_Pos,
+         4  => Trap_Neg, 5 => 1.0,      6 => Trap_Pos, 7 => Trap_Pos,
+         8  => Trap_Pos, 9 => -1.5,    10 => Trap_Pos, 11 => Trap_Neg
+      ];
+
+      --  BE direction: this is the path that crashed in the field.
+      Be_Packed : constant Float_Array.T   := Float_Array.C.Pack (Source);
+      Be_Round  : constant Float_Array.C.U_C := Float_Array.C.Unpack (Be_Packed);
+
+      --  Inspect raw bytes of the BE-packed array via overlay.
+      Be_Bytes  : Basic_Types.Byte_Array (0 .. Float_Array.Size_In_Bytes - 1)
+         with Import, Convention => Ada, Address => Be_Packed'Address;
+
+      --  LE direction: same payload, opposite storage order. Should also
+      --  round-trip; on a LE host this path involves no SSO crossing.
+      Le_Packed : constant Float_Array.T_Le := Float_Array.C.Pack (Source);
+      Le_Round  : constant Float_Array.C.U_C := Float_Array.C.Unpack (Le_Packed);
+   begin
+      --  First element is the trap value; verify BE-encoding directly.
+      pragma Assert (Be_Bytes (0) = 16#3A# and then Be_Bytes (1) = 16#77#
+                     and then Be_Bytes (2) = 16#EE# and then Be_Bytes (3) = 16#7F#,
+         "Float_Array.C.Pack did not produce BE bytes for trap value");
+
+      --  Bit-exact round-trip on every element, both directions.
+      for J in Source'Range loop
+         pragma Assert (To_U32 (Be_Round (J)) = To_U32 (Source (J)),
+            "BE Pack/Unpack round-trip mismatch at index" & J'Image);
+         pragma Assert (To_U32 (Le_Round (J)) = To_U32 (Source (J)),
+            "LE Pack/Unpack round-trip mismatch at index" & J'Image);
+      end loop;
+
+      --  Same trap value at a non-zero offset to defeat any aggregate-
+      --  level memcpy optimization that might happen to start aligned.
+      declare
+         Shifted : constant Float_Array.C.U_C := [
+            0 => 0.0, 1 => 0.0, 2 => Trap_Pos, others => Other
+         ];
+         Be2 : constant Float_Array.T   := Float_Array.C.Pack (Shifted);
+         R2  : constant Float_Array.C.U_C := Float_Array.C.Unpack (Be2);
+      begin
+         for J in Shifted'Range loop
+            pragma Assert (To_U32 (R2 (J)) = To_U32 (Shifted (J)),
+               "BE Pack/Unpack mismatch (shifted) at index" & J'Image);
+         end loop;
+      end;
+   end;
    Put_Line ("passed.");
    Put_Line ("");
 
