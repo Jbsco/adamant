@@ -108,6 +108,71 @@ class array(type):
                 + "total packed array itself must be byte aligned."
             )
 
+        # Compute a static literal that is an upper bound on the
+        # alignment GNAT will pick for this packed array's T (and
+        # T_Le) types. The validation autocode uses this literal in
+        # `with Alignment => ...` aspects on local Byte_Array copies
+        # that are then overlaid by `R : T`. The safety condition for
+        # the overlay (RM 13.3(13/3)) is met when `our_literal >=
+        # T'Alignment` and `our_literal mod T'Alignment = 0`. Both
+        # follow from "our literal is a power of 2 >= T'Alignment"
+        # because GNAT-RM 10.1 guarantees T'Alignment is also a power
+        # of 2 (any pow2 >= a smaller pow2 is a multiple of it).
+        #
+        # Records always have Alignment => 1 by GNAT-RM 13.4. For
+        # everything else we cannot match both targets exactly with
+        # one formula, so we pick a literal that is an upper
+        # bound on both. Specifically:
+        #   * byte-aligned: bytes_per_elem & -bytes_per_elem
+        #   * sub-byte: next_pow2 of total array byte size
+        # Over-aligning is harmless beyond a small stack-space cost
+        # for the local Byte_Array copy. Under-aligning would be
+        # erroneous. The pragma at every overlay site catches any
+        # under-alignment at compile time.
+        #
+        # The `n & -n` idiom isolates the lowest set bit, which for
+        # any positive integer is the greatest power of 2 dividing
+        # it.
+        if self.element.is_packed_type and not isinstance(
+            self.element.type_model, array
+        ):
+            # Packed-record element: T'Alignment = 1, also enforced
+            # by the parallel pragma Compile_Time_Error in the
+            # record-validation template.
+            self.required_alignment = 1
+        elif self.element.size % 8 == 0:
+            # Byte-aligned element: primitive (matches T'Alignment
+            # exactly) or nested packed array (an upper bound; the
+            # pragma at the overlay site enforces correctness).
+            bytes_per_elem = self.element.size // 8
+            self.required_alignment = bytes_per_elem & -bytes_per_elem
+        else:
+            # Sub-byte primitive (e.g. U10): GNAT picks next_pow2 of
+            # the array's total byte size. Round up to next power of
+            # 2: 1<<((x-1).bit_length()) for x>=1.
+            total_bytes = self.size // 8
+            self.required_alignment = 1 << max(0, (total_bytes - 1).bit_length())
+
+        # Sanity-check: Required_alignment must be a power
+        # of 2. Per the GNAT Reference Manual section 10.1 (Alignment
+        # Clauses): "GNAT requires that all alignment clauses specify
+        # 0 or a power of 2, and all default alignments are always a
+        # power of 2." So T'Alignment is also pow2, and together with
+        # this assertion that means `our_literal >= T'Alignment` (the
+        # template's Compile_Time_Error) implies `our_literal mod
+        # T'Alignment = 0` -- any pow2 >= a smaller pow2 is a
+        # multiple of it.
+        assert (
+            self.required_alignment > 0
+            and (self.required_alignment & (self.required_alignment - 1)) == 0
+        ), (
+            "Required_alignment="
+            + str(self.required_alignment)
+            + " for array '"
+            + self.name
+            + "' is not a power of 2, but must be per GNAT RM 10.1"
+        )
+
         # Make sure the array does not contain a variable length type:
         if self.variable_length:
             raise ModelException(

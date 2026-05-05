@@ -1,0 +1,12 @@
+---
+description: |
+  Packed array whose element is itself a packed array of Short_Float.
+  Exercises the byte-aligned-element path in the validation autocode
+  for a non-pow2 element byte size: each Packed_F32x3 element is 12
+  bytes, so GNAT picks T'Alignment = 4 (greatest pow2 factor of 12)
+  rather than collapsing to 1 like it would for a packed-record
+  element. Regressions in gen/models/array.py's required_alignment
+  computation will fire the parallel pragma Compile_Time_Error in
+  name-validation.adb.
+type: Packed_F32x3.T
+length: 2
