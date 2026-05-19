@@ -67,83 +67,37 @@ class parameters_packets(packets):
                 ] = self.entities[key].type_model
             # Handle a component other than the Parameters component that shares the parameter table type.
             elif pkt.name.endswith("Parameters"):
-                # First, lets get the path to the model file that will be the type for this packet.
-                # The typical assembly pattern pairs each Parameter_Store with a Parameters component
-                # via a shared Parameter_Manager, so we use that topology as a heuristic:
-                #   Parameter_Manager --Working_..._Send--> Parameters (active table)
-                #   Parameter_Manager --Primary_..._Send--> Parameter_Store (stored table)
-                # By finding which Parameter_Manager routes to self.component (this Parameter_Store),
-                # we can then find which Parameters component shares that same manager.
-                # This assumes the above attachment convention. If the assembly deviates from this
-                # pattern, the connection trace will fail and the fallback below will be used instead,
-                # which finds the first Parameters component in the assembly. If neither approach
-                # produces the correct result, this component should not use the parameters_packets
-                # model type.
-                model_path = None
-                model_name = None
+                # Resolve the Parameters component that holds the same parameter
+                # table as this Parameter_Store. See _find_paired_parameters_component
+                # for the resolution strategies (router_table model lookup, then
+                # legacy Parameter_Manager 1:1 trace).
+                paired = self._find_paired_parameters_component()
+                if paired is None:
+                    raise ModelException(
+                        "Could not resolve the Parameters component paired with '"
+                        + self.component.instance_name
+                        + "'. Verify the assembly declares a parameter_table_router_table "
+                        "submodel listing this Parameter_Store as a destination paired "
+                        "with a Parameters component, or routes this Parameter_Store "
+                        "through a Parameter_Manager."
+                    )
 
-                # Step 1: Find the Parameter_Manager connected to this component instance.
-                # Use "is" (object identity) rather than "==" because the base model class
-                # defines __eq__ as filename comparison, which would match all instances of
-                # the same component type. "is" correctly distinguishes individual instances.
-                param_manager = None
-                for conn in self.assembly.connections:
-                    if (
-                        conn.to_component is self.component
-                        and conn.to_connector.name
-                        == "Parameters_Memory_Region_T_Recv_Async"
-                    ):
-                        param_manager = conn.from_component
-                        break
-
-                # Step 2: Find the Parameters component wired to that Parameter_Manager.
-                if param_manager is not None:
-                    for conn in self.assembly.connections:
-                        if (
-                            conn.from_component is param_manager
-                            and conn.to_component.name == "Parameters"
-                        ):
-                            param_table = conn.to_component.init.get_parameter_value(
-                                "parameter_Table_Entries"
-                            )
-                            param_table_package = param_table.split(".")[0]
-                            model_name = param_table_package + "_record"
-                            model_path = model_loader.get_model_file_path(
-                                model_name, model_types=["record"]
-                            )
-                            if not model_path:
-                                raise ModelException(
-                                    "Could not find Stored_Parameters packet type model file: '"
-                                    + model_name
-                                    + "'."
-                                )
-                            break
-
-                # Fallback: search all components for a Parameters component. This preserves
-                # the original behavior for assemblies with a single parameter store that are
-                # not wired through a Parameter_Manager.
-                if model_path is None:
-                    for comp in self.assembly.components.values():
-                        if comp.name == "Parameters":
-                            param_table = comp.init.get_parameter_value(
-                                "parameter_Table_Entries"
-                            )
-                            param_table_package = param_table.split(".")[0]
-                            model_name = param_table_package + "_record"
-                            model_path = model_loader.get_model_file_path(
-                                model_name, model_types=["record"]
-                            )
-                            if not model_path:
-                                raise ModelException(
-                                    "Could not find Active_Parameters packet type model file: '"
-                                    + model_name
-                                    + "'."
-                                )
-                            break
-
+                # First, lets get the path to the model file that will be the type for this packet:
+                param_table = paired.init.get_parameter_value(
+                    "parameter_Table_Entries"
+                )
+                param_table_package = param_table.split(".")[0]
+                model_name = param_table_package + "_record"
+                model_path = model_loader.get_model_file_path(
+                    model_name, model_types=["record"]
+                )
                 if not model_path:
                     raise ModelException(
-                        "Could not find Parameters component in assembly."
+                        "Could not find Stored_Parameters packet type model file: '"
+                        + model_name
+                        + "' for '"
+                        + self.component.instance_name
+                        + "'."
                     )
 
                 # Make sure the model file has been autogenerated. Note that this causes a circular
@@ -162,3 +116,99 @@ class parameters_packets(packets):
 
         # Call the base class version:
         super(parameters_packets, self).set_assembly(assembly)
+
+    def _find_paired_parameters_component(self):
+        """Return the Parameters component that shares a parameter table with this Parameter_Store."""
+        self_name = self.component.instance_name
+
+        # Strategy 1: trace upstream on Parameters_Memory_Region to find the
+        # routing component (either Ccsds_Parameter_Table_Router or the legacy
+        # Parameter_Manager).
+        upstream = None
+        for conn in self.assembly.connections:
+            if (
+                conn.to_component is self.component
+                and conn.to_connector.name
+                == "Parameters_Memory_Region_T_Recv_Async"
+            ):
+                upstream = conn.from_component
+                break
+
+        if upstream is None:
+            return None
+
+        # Strategy 2: legacy Parameter_Manager 1:1 trace. The Parameter_Manager
+        # component routes a single parameter table to exactly one Parameters
+        # and one Parameter_Store, so the first Parameters peer reached from
+        # the manager is unambiguous.
+        if upstream.name == "Parameter_Manager":
+            for conn in self.assembly.connections:
+                if (
+                    conn.from_component is upstream
+                    and conn.to_component.name == "Parameters"
+                ):
+                    return conn.to_component
+            return None
+
+        # Strategy 3: Ccsds_Parameter_Table_Router fans one router out to
+        # multiple Parameters and Parameter_Store pairs. The router's
+        # Table init parameter names a parameter_table_router_table model
+        # whose entries explicitly list every destination sharing a table_id,
+        # so the entry naming this Parameter_Store also names its paired
+        # Parameters component.
+        if upstream.name == "Ccsds_Parameter_Table_Router":
+            router_table = self._load_router_table_model(upstream)
+            if router_table is None:
+                return None
+            for entry in router_table.table.values():
+                dest_names = [d.component_name for d in entry.destinations]
+                if self_name not in dest_names:
+                    continue
+                for dest in entry.destinations:
+                    if dest.component_name == self_name:
+                        continue
+                    peer = self.assembly.get_component_with_name(
+                        dest.component_name
+                    )
+                    if peer is not None and peer.name == "Parameters":
+                        return peer
+            return None
+
+        return None
+
+    def _load_router_table_model(self, router_component):
+        """Resolve the parameter_table_router_table model used by a router instance.
+
+        Prefer a copy already loaded into assembly.submodels matching the
+        router's Table init parameter package name. Otherwise scan the
+        assembly's submodel_files for a parameter_table_router_table yaml
+        and load it directly.
+        """
+        try:
+            table_qualifier = router_component.init.get_parameter_value("Table")
+        except Exception:
+            table_qualifier = None
+        expected_name = (
+            table_qualifier.split(".")[0].lower() if table_qualifier else None
+        )
+
+        for submodel in self.assembly.submodels.values():
+            if submodel.__class__.__name__ != "parameter_table_router_table":
+                continue
+            if (
+                expected_name is None
+                or getattr(submodel, "name", "").lower() == expected_name
+            ):
+                return submodel
+
+        for filename in self.assembly.submodel_files:
+            if not filename.endswith(".parameter_table_router_table.yaml"):
+                continue
+            redo.redo_ifchange(filename)
+            loaded = model_loader.load_model(filename)
+            if expected_name is None:
+                return loaded
+            if getattr(loaded, "name", "").lower() == expected_name:
+                return loaded
+
+        return None
