@@ -1,7 +1,7 @@
 name: Regenerate Documentation
 on:
   schedule:
-    - cron: "0 7 * * *"
+    - cron: "0 7 1 1,4,7,10 *"
   workflow_dispatch:
     inputs:
       dry_run:

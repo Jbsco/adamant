@@ -48,7 +48,7 @@ def description(base, documents):
     lines = [f"Documentation rebuilt on {TARGET} at {base}.", "",
              "Documents whose text changed:"]
     lines += [f"- {document}" for document in documents]
-    lines += ["", f"The nightly workflow replaces this branch with a fresh commit on the current {TARGET}. "
+    lines += ["", f"Each scheduled run replaces this branch with a fresh commit on the current {TARGET}. "
               "Do not push to this branch."]
     return "\n".join(lines)
 
