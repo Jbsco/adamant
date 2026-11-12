@@ -1,0 +1,1 @@
+{{ view_set | tojson(indent=2) }}

@@ -493,3 +493,41 @@ class component_visual_json(basic_generator, generator_base):
         c = self.model_object(input_filename)
         c.visual_bundle = build_component_bundle(c)
         print(c.render(self.template))
+
+
+class assembly_view_set_json(basic_generator, generator_base):
+    """Every view bundle of an assembly in one file, from one load of the assembly. Each
+    entry is the bundle that assembly_view_visual_json writes for that view, under the
+    view's name as the assembly bundle lists it."""
+
+    def __init__(self):
+        basic_generator.__init__(
+            self, model_class=assembly.assembly, template_filename="/assembly/name.view_set.json"
+        )
+
+    def generate(self, input_filename):
+        a = self.model_object(input_filename)
+        a.load_view_models()
+        assembly_dir = os.path.dirname(os.path.abspath(input_filename))
+        bundles = OrderedDict()
+        for v in a.views:
+            filtered = v.apply(a)
+            filtered.view_filters = v.filters
+            filtered.view_rule = v.rule
+            view_name = os.path.basename(v.full_filename).split(".")[0]
+            bundles[v.name] = build_bundle(filtered, "view", view_name, assembly_dir)
+        a.view_set = OrderedDict(
+            [
+                ("schema_version", SCHEMA_VERSION),
+                ("kind", "view_set"),
+                ("assembly", a.name),
+                ("views", bundles),
+            ]
+        )
+        print(a.render(self.template))
+
+    def depends_on(self, input_filename):
+        a = self.model_object(input_filename)
+        a.load_view_models()
+        return a.get_dependencies() + [v.full_filename for v in a.views]
+
